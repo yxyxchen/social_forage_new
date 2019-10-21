@@ -67,8 +67,8 @@ RL = function(beta, tau, iniLongRunRate, htSeq_){
       # update reRate given the self-generated outcome
       # in formal R-learning, we should minus Q here. However, they should cancel out since E(Q) = 0
       # also, we use requiredHt + iti here
-      delta  = trialEarnings - (spentHt + iti) * reRate # we should one sec stop of the task
-      reRate = reRate + beta * delta
+      delta  = (trialEarnings - (spentHt + iti) * reRate) /  (spentHt + iti)
+      reRate = reRate + (1 - (1 -beta) ^ (spentHt + iti)) * delta 
       
       #update blockTime and trialIndex
       blockTime = blockTime + spentHt + iti
@@ -130,84 +130,58 @@ RL = function(beta, tau, iniLongRunRate, htSeq_){
       }
     }                                               
   }
-                                                                                                                                 
-  # map reRate and acceptMatrix to a standard time grid                                    
-  tGrid = seq(0, blockSec, by = 2)  
-  nT = length(tGrid)
-  reRateOnGrid = vector(length = nT)
-  for(i in 1 : nT){
-    t = tGrid[i]
-    if(t >= min(blockTime_[tIdxInBlock_ <= nTrial])){
-      reRateOnGrid[i] = reRate_[max(which(blockTime_ <= t & tIdxInBlock_ <= nTrial))]
+       
+  tGrid = seq(0, blockSec, by = 0.5)  
+  nT = length(tGrid) 
+  # map reRate and acceptMatrix to a standard time grid    
+  for(c in 1 : nCondition){
+    condition = conditions[c]
+    inputData  = junk[junk$condition == condition,]
+    thisAcceptMatrix =  acceptMatrix[,junk$condition[junk$tIdxInChunk == 1] == condition]
+    
+    # initialize 
+    thisReRateOnGrid = vector(length = nT)
+
+    for(i in 1 : nT){
+      t = tGrid[i]
+      # NA on the beginning, since reRate[i] is the estimate at the end of the trial i
+      if(t >= min(inputData$blockTime)){
+        thisReRateOnGrid[i] = inputData$reRate[max(which(inputData$blockTime <= t))]
+      }else{
+        thisReRateOnGrid[i] = ifelse(condition == conditions[1], iniLongRunRate, tail(junk$reRate[junk$condition == conditions[1]], 1))
+      }
+    }
+    thisAcceptMatrixOnGrid = matrix(NA, nrow = nUnqHt, ncol = nT)
+    endOfBlockTimes = inputData$blockTime[inputData$tIdxInChunk == chunkSize]
+    # NA on the end, assuming not observed actions the same as the one on the last chunk
+    for(i in 1 : nT){
+      t = tGrid[i]
+      if(t <= max(endOfBlockTimes)){
+        thisAcceptMatrixOnGrid[,i] = thisAcceptMatrix[,min(which(endOfBlockTimes >= t))]
+      }else{
+        thisAcceptMatrixOnGrid[,i] = thisAcceptMatrix[,ncol(thisAcceptMatrix)]
+      }
+    }
+    
+    if(c == 1){
+      richReRateOnGrid = thisReRateOnGrid
+      richAcceptMatrixOnGrid = thisAcceptMatrixOnGrid
     }else{
-      reRateOnGrid[i] = iniLongRunRate
+      poorReRateOnGrid = thisReRateOnGrid
+      poorAcceptMatrixOnGrid = thisAcceptMatrixOnGrid      
     }
   }
-  acceptMatrixOnGrid = matrix(NA, nrow = nProb, ncol = nT)
-  endOfBlockTimes = blockTime_[tIdxInChunk_ == chunkSize & tIdxInBlock_ <= nTrial]
-  for(i in 1 : nT){
-    t = tGrid[i]
-    if(t <= max(endOfBlockTimes)){
-      acceptMatrixOnGrid[,i] = acceptMatrix[,min(which(endOfBlockTimes >= t))]
-    }else{
-      acceptMatrixOnGrid[,i] = acceptMatrix[,nChunk]
-    }
-  }
-  
-  # map reRate and acceptMatrix to a standard time grid                                    
-  tGrid = seq(0, blockSec, by = 2)  
-  nT = length(tGrid)
-  reRateOnGrid = vector(length = nT)
-  for(i in 1 : nT){
-    t = tGrid[i]
-    if(t >= min(blockTime_[tIdxInBlock_ <= nTrial])){
-      reRateOnGrid[i] = reRate_[max(which(blockTime_ <= t & tIdxInBlock_ <= nTrial))]
-    }else{
-      reRateOnGrid[i] = iniLongRunRate
-    }
-  }
-  acceptMatrixOnGrid = matrix(NA, nrow = nProb, ncol = nT)
-  endOfBlockTimes = blockTime_[tIdxInChunk_ == nStim & tIdxInBlock_ <= nTrial]
-  for(i in 1 : nT){
-    t = tGrid[i]
-    if(t <= max(endOfBlockTimes)){
-      acceptMatrixOnGrid[,i] = acceptMatrix[,min(which(endOfBlockTimes >= t))]
-    }else{
-      acceptMatrixOnGrid[,i] = acceptMatrix[,nChunk]
-    }
-  }
-  
-  # map reRate and acceptMatrix to a standard time grid                                    
-  tGrid = seq(0, blockSec * nCondition, by = 2)  
-  nT = length(tGrid)
-  reRateOnGrid = vector(length = nT)
-  for(i in 1 : nT){
-    t = tGrid[i]
-    if(t >= min(blockTime_[tIdxInBlock_ <= nTrial])){
-      reRateOnGrid[i] = reRate_[max(which(blockTime_ <= t & tIdxInBlock_ <= nTrial))]
-    }else{
-      reRateOnGrid[i] = iniLongRunRate
-    }
-  }
-  acceptMatrixOnGrid = matrix(NA, nrow = nProb, ncol = nT)
-  endOfBlockTimes = blockTime_[tIdxInChunk_ == nStim & tIdxInBlock_ <= nTrial]
-  for(i in 1 : nT){
-    t = tGrid[i]
-    if(t <= max(endOfBlockTimes)){
-      acceptMatrixOnGrid[,i] = acceptMatrix[,min(which(endOfBlockTimes >= t))]
-    }else{
-      acceptMatrixOnGrid[,i] = acceptMatrix[,nChunk]
-    }
-  }
+  reRateOnGrid = c(richReRateOnGrid, poorReRateOnGrid)
+  acceptMatrixOnGrid = cbind(richAcceptMatrixOnGrid, poorAcceptMatrixOnGrid)
+
   
   # return outputs
   outputs = list(
-    "iniLongRunRate" =   iniLongRunRate,
-    "iniMinAcpRwd" = iniMinAcpRwd,
-    "iniNLeaveProb" = iniNLeaveProb,
+    "iniLongRunRate" = iniLongRunRate,
+    "iniMaxAcpHt" = max(unqHts[rwd / unqHts >= iniLongRunRate]),
     "acceptMatrix" = acceptMatrix,
     "acceptMatrixOnGrid" = acceptMatrixOnGrid,
-    "reRateOnGrid" = reRateOnGrid 
+    "reRateOnGrid" = reRateOnGrid
   )
   outputs = c(junk, outputs)
   return(outputs)

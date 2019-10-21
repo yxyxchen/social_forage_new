@@ -12,13 +12,9 @@ htSeq_ = lapply(1 : nCondition, function(i) {
   tempt[1 : nTrialMax]
 })
   
-# temporary learning parameters
-beta = 0.01
-tau = 2 
-iniLongRunRate = 0.5
 
 # shuffle all possive rewards to generate the reward sequence
 # call the function
 social_nonSocial(htSeq_)
 
-# 
+

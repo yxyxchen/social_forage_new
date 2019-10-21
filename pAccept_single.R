@@ -12,56 +12,47 @@ load("expParas.RData")
 # output dir 
 dir.create("figures")
 
-# read in parameters 
-para = read.csv("para.csv")
+# create the ht sequence
+htSeq_ = lapply(1 : nCondition, function(i) {
+  condition = conditions[i]
+  tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+  tempt[1 : nTrialMax]
+})
 
-# reward constants 
-ctxRwd = 40
-nCtx = 6
-rwds = c(probRwds, rep(ctxRwd, nCtx)) # all possible rewards 
-unqRwds = unique(rwds) # all unique rewards
-set.seed(123)
-rwd_ = as.vector( replicate(nChunkMax, sample(rwds)) )
-rwd_ = rwd_[1 : nTrialMax]
 
 # simulate non_social data
-beta = 0.1
+beta = 0.002
 tau = 2
-iniLongRunRate = runif(1, 3 / ht, 18 / ht)
-RLResults = RL(beta, tau, iniLongRunRate, ctxRwd, rwd_)
+iniLongRunRate = runif(1, 0.15, 1)
+RLResults = RL(beta, tau, iniLongRunRate, htSeq_)
 
 # prepare data
-action = ifelse(RLResults$requiredHt == ht, 1, 0)
-pastEarnings1 = c(NA, head(RLResults$rwd, -1))
+action = ifelse(RLResults$trialEarnings == rwd, 1, 0)
+pastRwdRate = RLResults$trialEarnings / RLResults$spentHt
+pastRwdRate[RLResults$spentHt == 0] = 0
+pastRwdRate = c(NA, head(pastRwdRate, -1))
 data = data.frame(
   action,
-  pastEarnings1,
-  rwd = RLResults$rwd
+  pastRwdRate,
+  ht = RLResults$scheduledHt,
+  condition = RLResults$condition
 )
 data = data[apply(data, MARGIN = 1, FUN = function(x) all(!is.na(x))),]
 
-# summarise pAccept for different reward sizes and different past earnings
+# summarise pAccept for different reward sizes and conditions
 sumData = data %>% 
-  group_by(rwd, pastEarnings1) %>% summarise(sum(action) / length(action))
-colnames(sumData) = c("rwd", "pastEarnings1", "pAccept")
+  group_by(condition, ht) %>% summarise(sum(action) / length(action))
+colnames(sumData) = c("condition", "ht", "pAccept")
+sumData %>% ggplot(aes(ht, pAccept, fill= condition)) +
+  geom_bar(stat = "identity",position = 'dodge' ) 
 
-# regression with reward sizes 
-fit1 = glm(pAccept~rwd,
-           data = sumData, family = binomial)
-summary(fit1)
 
-# plot the effect of reward sizes 
-x = seq(0, max(rwds), by = 1)
-fitData = data.frame(
-  x,
-  y = exp(fit1$coefficients[1] + fit1$coefficients[2] * x) / 
-    (1 + exp(fit1$coefficients[1] + fit1$coefficients[2] * x))
-)
-data %>% group_by(rwd) %>% summarise(pAccept = sum(action) / length(action)) %>%
-  ggplot(aes(rwd, pAccept)) + geom_point() + myTheme + 
-  geom_line(data = fitData, aes(x, y), linetype = "dashed")
+# 
+sumData = data %>% 
+  group_by(condition, pastRwdRate) %>% summarise(sum(action) / length(action))
+colnames(sumData) = c("condition", "pastRwdRate", "pAccept")
+sumData %>% ggplot(aes(pastRwdRate, pAccept, fill= condition)) +
+  geom_bar(stat = "identity",position = 'dodge' ) 
 
-# plot the effect of reward sizes 
-sumData %>% ggplot(aes(factor(pastEarnings1), pAccept)) +
-  geom_bar(stat = "identity") + facet_wrap(~rwd) + myTheme +
-  xlab("Last trial earnings")
+
+
