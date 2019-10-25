@@ -54,7 +54,9 @@ social_nonSocial = function(htSeq_){
   
   # calculate the ideal behavior, assuming there is noise in actions 
   meanTau = 12.5
-  aggData$optimPAccept = 1 / (1 + exp(meanTau * (as.numeric(aggData$ht) * as.numeric(optimLongRunRate_[aggData$condition]) - rwd)))
+  # aggData$optimPAccept = 1 / (1 + exp(meanTau * (as.numeric(aggData$ht) * as.numeric(optimLongRunRate_[aggData$condition]) - rwd)))
+  aggData$optimPAccept = ifelse(as.numeric(aggData$ht) <= as.numeric(optimMaxAcpHt_[aggData$condition]), 1, 0)
+  
   
   aggData %>% mutate(ht = factor(ht, levels = unqHts)) %>%
     ggplot(aes(time, pAccept, color = social)) + geom_line(size = 1) +
