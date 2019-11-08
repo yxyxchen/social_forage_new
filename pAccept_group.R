@@ -12,8 +12,6 @@ load("expParas.RData")
 # output dir 
 dir.create("figures")
 
-
-
 # create the ht sequences in two conditions
 htSeq_ = lapply(1 : nCondition, function(i) {
   condition = conditions[i]
@@ -38,9 +36,11 @@ dfList = lapply(1 : nSub, function(i) {
   RLResults = RLResults_[[i]]
   action = ifelse(RLResults$trialEarnings > 0, 1, 0)
   pastEarnings1 = c(NA, head(RLResults$trialEarnings, -1))
+  pastHt1 = c(NA, head(RLResults$spentHt, -1) + iti)
   data = data.frame(
-    action,
-    pastEarnings1,
+    action = action,
+    pastEarninings = pastEarnings1,
+    pastRwdRate = pastEarnings1 / pastHt1,
     ht = RLResults$scheduledHt,
     subId  = rep(i, length = length(action))
   )
@@ -60,14 +60,14 @@ data %>% group_by(ht, subId) %>% summarise(pAccept = sum(action) / length(action
   ggplot(aes(ht, mu)) + geom_bar(stat = "identity") + myTheme +
   geom_errorbar(aes(ymin = min, ymax = max, width = 1))
 
-#                                                                         cnñ
-
-# summarise pAccept for different reward sizes and different past earnings
-sumData = data %>% 
-  group_by(ht, pastEarnings1) %>% summarise(sum(action) / length(action))
-colnames(sumData) = c("ht", "pastEarnings1", "pAccept")
-
-
+# plot the effect of past earnings 
+data %>% group_by(pastRwdRate, subId) %>% summarise(pAccept = sum(action) / length(action)) %>%
+  group_by(pastRwdRate) %>% summarise(mu = mean(pAccept),
+                             se = sd(pAccept) / sqrt(length(pAccept)),
+                             min = mu - se,
+                             max = mu + se) %>%
+  ggplot(aes(pastRwdRate, mu)) + geom_bar(stat = "identity") + myTheme +
+  geom_errorbar(aes(ymin = min, ymax = max, width = 1))
 
 
 # plot the effect of reward sizes 
@@ -77,7 +77,6 @@ sumData %>% ggplot(aes(factor(pastEarnings1), pAccept)) +
 
 
 
-0
 
 # plot the effect of reward sizes 
 x = seq(0, max(unqHts), by = 1)
