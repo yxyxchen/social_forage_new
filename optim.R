@@ -1,8 +1,8 @@
 rwd = 2
-iti = 2 # travel time 
+iti = 4 # travel time 
 conditions = c("rich", "poor")
 nCondition = length(conditions)
-hts_ = list("rich" = c(16, 11, 8, 1.5, 1.5, 1.5, 1.5), "poor" = c(16, 16, 16, 16, 11, 8, 1.5))
+hts_ = list("rich" = c(18, 13, 10, 2, 2, 2, 2), "poor" = c(18, 18, 18, 18, 13, 10, 2))
 unqHts = unique(hts_$rich)
 nUnqHt = length(unqHts)
 chunkSize = 7
@@ -38,3 +38,5 @@ save("rwd", "iti", "conditions",
      "blockSec",
      "nTrialMax", "nChunkMax",
      file = "expParas.RData")
+
+optimMaxAcpHt_

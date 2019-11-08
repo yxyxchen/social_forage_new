@@ -1,0 +1,13 @@
+*.txt
+*.csv
+*.png
+*.jpge
+*.pdf
+*.jpg
+*.Rhistory
+genData/
+figures/
+*.DS_Store
+backup/
+*.mat
+
