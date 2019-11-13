@@ -67,7 +67,7 @@ RL = function(beta, tau, iniLongRunRate, htSeq_){
       # update reRate given the self-generated outcome
       # in formal R-learning, we should minus Q here. However, they should cancel out since E(Q) = 0
       # also, we use requiredHt + iti here
-      delta  = (trialEarnings - (spentHt + iti) * reRate) /  (spentHt + iti)
+      delta  = (trialEarnings - (spentHt + iti) * reRate) /  (spentHt + iti) 
       reRate = reRate + (1 - (1 -beta) ^ (spentHt + iti)) * delta 
       
       #update blockTime and trialIndex

@@ -11,15 +11,6 @@ load("expParas.RData")
 
 # output dir 
 dir.create("figures")
-
-# create the ht sequences in two conditions
-htSeq_ = lapply(1 : nCondition, function(i) {
-  condition = conditions[i]
-  tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
-  tempt[1 : nTrialMax]
-})
-
-
 # simulate non_social data
 nSub = 64
 RLResults_ = list(length = nSub)
@@ -69,13 +60,13 @@ data %>% group_by(ht, subId) %>% summarise(pAccept = sum(action) / length(action
   geom_errorbar(aes(ymin = min, ymax = max, width = 1))
 
 # plot the effect of past earnings 
-data %>% group_by(spentTime4LastRwd, subId) %>% summarise(pAccept = sum(action) / length(action)) %>%
-  group_by(spentTime4LastRwd) %>% summarise(mu = mean(pAccept),
+data %>% group_by(spentTime4LastRwd, ht, subId) %>% summarise(pAccept = sum(action) / length(action)) %>%
+  group_by(spentTime4LastRwd, ht) %>% summarise(mu = mean(pAccept),
                              se = sd(pAccept) / sqrt(length(pAccept)),
                              min = mu - se,
                              max = mu + se) %>%
-  ggplot(aes(spentTime4LastRwd, mu)) + geom_bar(stat = "identity") + myTheme +
-  geom_errorbar(aes(ymin = min, ymax = max, width = 0.01))
+  ggplot(aes(spentTime4LastRwd, mu)) + geom_bar(stat = "identity") + myTheme + 
+  geom_errorbar(aes(ymin = min, ymax = max, width = 0.01)) + facet_grid(~ht)
 
 
 # plot the effect of reward sizes 
