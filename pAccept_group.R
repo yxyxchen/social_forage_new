@@ -19,6 +19,7 @@ htSeq_ = lapply(1 : nCondition, function(i) {
   tempt[1 : nTrialMax]
 })
 
+
 # simulate non_social data
 nSub = 64
 RLResults_ = list(length = nSub)
@@ -32,7 +33,7 @@ for(sIdx in 1 : nSub){
 
 
 # concatenate 
-dfList = lapply(1 : nSub, function(i) {
+dfList = lapply(1 : nSub, function(i){
   RLResults = RLResults_[[i]]
   action = ifelse(RLResults$trialEarnings > 0, 1, 0)
   pastEarnings1 = c(NA, head(RLResults$trialEarnings, -1))
@@ -40,19 +41,18 @@ dfList = lapply(1 : nSub, function(i) {
   
   # 
   spentTime = RLResults$spentHt + iti # assume reward occurs at the end of the feedback period
-  spentTimeUntilRecentRwd = c(NA, ave(spentTime, cumsum(spentTime != 4), FUN = cumsum)
+  spentTime4LastRwd = c(NA, head(ave(spentTime, cumsum(spentTime != 4), FUN = cumsum), -1))
   
-  time_since_last_rwd = ifelse(RLResults$spentHt == 0, )
   data = data.frame(
     action = action,
     pastEarninings = pastEarnings1,
-    time_since_last_rwd = 
     pastRwdRate = pastEarnings1 / pastHt1,
     ht = RLResults$scheduledHt,
+    spentTime4LastRwd = spentTime4LastRwd,
     subId  = rep(i, length = length(action))
   )
-}
-)
+})
+
 
 data = bind_rows(dfList)
 data = data[apply(data, MARGIN = 1, FUN = function(x) all(!is.na(x))),]
@@ -69,12 +69,12 @@ data %>% group_by(ht, subId) %>% summarise(pAccept = sum(action) / length(action
   geom_errorbar(aes(ymin = min, ymax = max, width = 1))
 
 # plot the effect of past earnings 
-data %>% group_by(pastRwdRate, subId) %>% summarise(pAccept = sum(action) / length(action)) %>%
-  group_by(pastRwdRate) %>% summarise(mu = mean(pAccept),
+data %>% group_by(spentTime4LastRwd, subId) %>% summarise(pAccept = sum(action) / length(action)) %>%
+  group_by(spentTime4LastRwd) %>% summarise(mu = mean(pAccept),
                              se = sd(pAccept) / sqrt(length(pAccept)),
                              min = mu - se,
                              max = mu + se) %>%
-  ggplot(aes(pastRwdRate, mu)) + geom_bar(stat = "identity") + myTheme +
+  ggplot(aes(spentTime4LastRwd, mu)) + geom_bar(stat = "identity") + myTheme +
   geom_errorbar(aes(ymin = min, ymax = max, width = 0.01))
 
 
