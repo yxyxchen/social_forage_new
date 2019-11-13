@@ -5,7 +5,7 @@ library("dplyr")
 library("tidyr")
 library("lme4")
 source("subFxs/plotThemes.R")
-
+library("data.table")
 # load expParas
 load("expParas.RData")
 
@@ -31,15 +31,22 @@ for(sIdx in 1 : nSub){
 }
 
 
-# prepare data
+# concatenate 
 dfList = lapply(1 : nSub, function(i) {
   RLResults = RLResults_[[i]]
   action = ifelse(RLResults$trialEarnings > 0, 1, 0)
   pastEarnings1 = c(NA, head(RLResults$trialEarnings, -1))
   pastHt1 = c(NA, head(RLResults$spentHt, -1) + iti)
+  
+  # 
+  spentTime = RLResults$spentHt + iti # assume reward occurs at the end of the feedback period
+  spentTimeUntilRecentRwd = c(NA, ave(spentTime, cumsum(spentTime != 4), FUN = cumsum)
+  
+  time_since_last_rwd = ifelse(RLResults$spentHt == 0, )
   data = data.frame(
     action = action,
     pastEarninings = pastEarnings1,
+    time_since_last_rwd = 
     pastRwdRate = pastEarnings1 / pastHt1,
     ht = RLResults$scheduledHt,
     subId  = rep(i, length = length(action))
@@ -52,6 +59,7 @@ data = data[apply(data, MARGIN = 1, FUN = function(x) all(!is.na(x))),]
 
 
 # plot the effect of reward sizes 
+# make sure to average within each participant first. And use se across participants 
 data %>% group_by(ht, subId) %>% summarise(pAccept = sum(action) / length(action)) %>%
   group_by(ht) %>% summarise(mu = mean(pAccept),
                              se = sd(pAccept) / sqrt(length(pAccept)),
@@ -67,15 +75,13 @@ data %>% group_by(pastRwdRate, subId) %>% summarise(pAccept = sum(action) / leng
                              min = mu - se,
                              max = mu + se) %>%
   ggplot(aes(pastRwdRate, mu)) + geom_bar(stat = "identity") + myTheme +
-  geom_errorbar(aes(ymin = min, ymax = max, width = 1))
+  geom_errorbar(aes(ymin = min, ymax = max, width = 0.01))
 
 
 # plot the effect of reward sizes 
 sumData %>% ggplot(aes(factor(pastEarnings1), pAccept)) +
   geom_bar(stat = "identity") + facet_wrap(~ht) + myTheme +
   xlab("Last trial earnings")
-
-
 
 
 # plot the effect of reward sizes 

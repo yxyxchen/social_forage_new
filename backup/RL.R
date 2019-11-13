@@ -1,135 +1,188 @@
 # this function simulates choices of an agent 
-# who ignores social information in the prey selection task 
+# who has no social information in the prey selection task 
 
 # inputs:
 # beta : learning rate, 0-1
 # tau :  temperature parameter in the soft-max function, 0, +inf
-# ctxRwd : reward for context modualtion trials 
+# ctxRwd : reward for the context modualtion trials 
+# rwd_ : reward sequences 
 
 # outputs:
 # tIdxInBlock [nTrialx1 int]: trial index within the block
 # tIdxInChunk [nTrialx1 int]: trial index within the chunk
 # rwd [nTrialx1 int]: trial-wise rewards
+
 # trialEarnings [nTrialx1 int]: trial-wise payments
-# timespent [nTrialx1 int]: time spent on each trial
+# requiredHt [nTrialx1 int]: time spent on each trial
+# blockTime [nTrialx1 int]: elapsed time at the end of each trial 
 # reRate  [nTrialx1 real]: trial-wise estimates for the long-run reward rate
 # delta [nTrialx1 real]: trial-wise prediction errors
-# optimLongRunRate [1x1 real]: optimal long-run reward rate 
-# optimThreshold [1x1 real]: optimal threshold for accepting options
-# iniThreshold [1x1 real]: initial threshold for accepting options
-# iniNLeaveProb [1x1 real]: number of forgone prob rewards initially
-# optimNLeaveProb [1x1 real]: number of forgone prob rewards optimally 
 
-RL = function(beta, tau, ctxRwd, rwd_){
-  # time constants 
-  iti = 2 # iti duration
-  ht = 2 # handle duration
- 
-  # rewards constant
-  probRwds = seq(3, 18, by = 3) # possible rewards in prob trials 
-  probRwdRates =  probRwds / ht # possible local reward rates in prob trials
-  ctxRwdRate = ctxRwd / ht # local reward rate in context modualtion trials
+# iniLongRunRate [1x1 real]: initial estimate for the long-run reward rate
+# iniMinAcpRwd [1x1 real]: minimal reward accepted initially 
+# iniNLeaveProb [1x1 real]: number of forgone prob rewards initially
+# optimLongRunRate [1x1 real]: the optimal long-run reward rate 
+# optimNLeaveProb [1x1 real]: number of forgone prob rewards optimally 
+# optimMinAcpRwd [1x1 real]: minimal reward accepted under the optimal policy
+
+RL = function(beta, tau, iniLongRunRate, htSeq_){
+  # load expParas
+  load("expParas.RData")
   
-  # ctxRwd should not equal any possible reward in prob trials 
-  if(any(ctxRwd == probRwds)){
-    print("ctxRwd should not equal rewards in prob trials!")
-    break
-  }
-  
-  # other constants 
-  nProb = length(probRwds) # number of prob trials in a sample cycle 
-  nCtx = 6 # number of context modulation trials in a sample cycle 
-  nStim = nProb + nCtx # number of trials in a sample cycle 
-  nChunk = 10 # number of sample cycles 
-  nTrial = nChunk * (nStim) # toatl num of trials in this block
-  
-################### optim analysis ################
-  # calculate the optim long-run reward rates and the optim threshold 
-  
-  # possible decision thresholds: engage only when the reward rate >= the threshold
-  thresholds = sort(c(ctxRwdRate, probRwdRates)) 
-  # calculate the long-term reward rate for every possible decision threshold 
-  # noticably, long-term reward rates are different from local reward rates
-  # whereas local reward rate = reward / ht
-  # and long-term reward rates = E[reward] / E[iti + ht]
-  longRunRates = sapply(1 : length(thresholds),
-                       function(j) {
-                         totalReward = sum(probRwds[probRwdRates >=  thresholds[j]]) + 
-                           ifelse(ctxRwdRate >= thresholds[j], ctxRwd * nCtx, 0) 
-                         totalTime = iti * (nCtx + length(probRwdRates)) + 
-                           ifelse(ctxRwdRate >= thresholds[j], ht * nCtx, 0) + 
-                           sum(probRwdRates >= thresholds[j]) * ht
-                         totalReward / totalTime
-                       })
-  optimLongRunRate = max(longRunRates)
-  optimThreshold = thresholds[which.max(longRunRates)] 
-  optimNLeaveProb = sum(round(probRwdRates, 5) < round(optimThreshold, 5))
   ############################# model ################################
+  # initialize the estimate for the long-run reward rate
+  reRate = iniLongRunRate 
   
-  # generate the reward sequence
-  rwds = c(probRwds, rep(ctxRwd, nCtx)) # all possible rewards 
-  chunkNum = rep(1 : nChunk, each = nStim)
-  tIdxInBlock_ = 1 : nTrial # trial indexs within this block
-  tIdxInChunk_ = rep(1 : nStim, nChunk) # trial indexs within each chunk
+  # loop over conditions
+  for(c in 1 : nCondition){
+    condition = conditions[c]
+    htSeq = htSeq_[[c]]
+    
+    # initialize recording variables 
+    condition_ = rep(NA, length = nCondition * nTrialMax)
+    tIdxInChunk_ = rep(NA, length = nCondition * nTrialMax)
+    cIdxInBlock_ = rep(NA, length = nCondition * nTrialMax)
+    scheduledHt_ = rep(NA, length = nTrialMax * nCondition) # scheduled ht
+    spentHt_ = rep(NA, length = nTrialMax * nCondition) # variables to record spent time, if engage = ht otherwise = 0
+    blockTime_ = rep(NA, length = nTrialMax * nCondition)
+    trialEarnings_ = rep(NA, length = nTrialMax * nCondition) # variable to record trialEarnings
+    reRate_ = rep(NA, length = nTrialMax * nCondition) # variable to record reRate
+    delta_ = rep(NA, length = nTrialMax * nCondition) # diagnosis variable to record prediction errors
+    
+    # loop over trials
+    blockTime = 0 # elapsedTime since the beginning of the block
+    tIdx = 1
+    while(blockTime < blockSec){
+      # current ht
+      scheduledHt = htSeq[[tIdx]]
+      
+      # make the action
+      pAccept = 1 / (1 + exp( ((scheduledHt) * reRate - rwd) * tau)) 
+      action = ifelse(runif(1) <= pAccept, "accept", "forgo") 
+      
+      # record trialEarnings and spentHt
+      trialEarnings = ifelse(action == "accept", rwd, 0)
+      spentHt = ifelse(action == "accept", scheduledHt, 0)
+      
+      # update reRate given the self-generated outcome
+      # in formal R-learning, we should minus Q here. However, they should cancel out since E(Q) = 0
+      # also, we use requiredHt + iti here
+      delta  = (trialEarnings - (spentHt + iti) * reRate) /  (spentHt + iti)
+      reRate = reRate + (1 - (1 -beta) ^ (spentHt + iti)) * delta 
+      
+      #update blockTime and trialIndex
+      blockTime = blockTime + spentHt + iti
+      
+      # save variables 
+      if(blockTime <= blockSec){
+        tIdxInChunk_[tIdx] = ifelse(tIdx %% chunkSize == 0, chunkSize, tIdx %% chunkSize)
+        cIdxInBlock_[tIdx] = ceiling(tIdx / chunkSize)
+        condition_[tIdx] = condition
+        scheduledHt_[tIdx] = scheduledHt
+        spentHt_[tIdx] = spentHt
+        blockTime_[tIdx] = blockTime
+        trialEarnings_[tIdx] = trialEarnings
+        reRate_[tIdx] = reRate
+        delta_[tIdx] = delta 
+      }
+      # update trial index
+      tIdx = tIdx + 1
+    }
+    # truncate and save
+    tempt = data.frame(
+      "condition" = condition_,
+      'tIdxInChunk' = tIdxInChunk_,
+      'cIdxInBlock' = cIdxInBlock_,
+      'scheduledHt' = scheduledHt_,
+      'spentHt' = spentHt_,
+      'blockTime' = blockTime_,
+      'trialEarnings' = trialEarnings_,
+      'reRate' = reRate_,
+      'delta' = delta_
+    )
+    nTrial = sum(!is.na(condition_), na.rm = T)
+    tempt = tempt[1 : nTrial,]
+    if(condition == "rich"){
+      richOutputs = tempt
+    }else{
+      poorOutputs = tempt
+    }
+ }
   
-  # initialize variables 
-  reRate = 5.25 # initial estimate of the long-run reward rate
-  iniThreshold = min(thresholds[thresholds >= reRate]) # initial threshold given the initial long-run reward rate
-  iniNLeaveProb = sum(probRwdRates >= reRate)
-    
-  timeSpent_ = vector(length = nTrial) # variables to record spent time, if engage = ht otherwise = 0
-  reRate_ = vector(length = nTrial) # variable to record reRate
-  trialEarnings_ = vector(length = nTrial) # variable to record trialEarnings
-  target_ = vector(length = nTrial) # variable to record update targets 
-  delta_ = vector(length = nTrial) # variable to record prediction errors
+ # combine data from the two conditions
+ junk = rbind(richOutputs, poorOutputs)
+ junk$ckIdxInTask = junk$cIdxInBlock
+ junk$ckIdxInTask[junk$condition == conditions[2]] =  junk$ckIdxInTask[junk$condition == conditions[2]] + 
+   tail(junk$ckIdxInTask[junk$condition == conditions[1]], 1)
   
-  # loop over trials
-  for(i in 1 : nTrial){
-    rwd = rwd_[i] # current rwd
-    
-    # make the action
-    pAccept = 1 / (1 + exp( ((ht) * reRate - rwd) * tau)) 
-    action = ifelse(runif(1) <= pAccept, "accept", "forgo") 
-    trialEarnings = ifelse(action == "accept", rwd, 0)
-    timeSpent = ifelse(action == "accept", ht, 0)
-    
-    # update reRate given the self-generated outcome
-    # in formal R-learning, we should minus Q here. However, they should cancel out since E(Q) = 0
-    # also, we use timeSpent + iti here
-    delta  = trialEarnings - (timeSpent + iti) * reRate # we should one sec stop of the task
-    reRate = reRate + beta * delta
-    
-    
-    # save
-    timeSpent_[i] = timeSpent
-    delta_[i] = delta
-    reRate_[i] = reRate
-    trialEarnings_[i] = trialEarnings
-  }
-  
+ # count chunks and trials
+ nChunk = length(unique(junk$ckIdxInTask))
+ nTrial = nrow(junk)
+   
   # calculate how responses to prob stims change
-  acceptMatrix = matrix(NA, nProb, nChunk)
-  for(i in 1 : nProb){
+  acceptMatrix = matrix(NA, nUnqHt, nChunk)
+  for(i in 1 : nUnqHt){                                                                                                                                                                                                                                                                                                                                                                                                                                              
     for(j in 1 : nChunk){
-      acceptMatrix[i, j] = timeSpent_[rwd_ == probRwds[i] & chunkNum == j] == ht
+      if(sum(junk$scheduledHt == unqHts[i] & junk$ckIdxInTask == j) != 0){
+        acceptMatrix[i, j] = mean(junk$trialEarnings[junk$scheduledHt == unqHts[i] & junk$ckIdxInTask == j] == rwd)
+      }else{
+        acceptMatrix[i, j] = NA
+      }
+    }                                               
+  }
+       
+  tGrid = seq(0, blockSec, by = 0.5)  
+  nT = length(tGrid) 
+  # map reRate and acceptMatrix to a standard time grid    
+  for(c in 1 : nCondition){
+    condition = conditions[c]
+    inputData  = junk[junk$condition == condition,]
+    thisAcceptMatrix =  acceptMatrix[,junk$condition[junk$tIdxInChunk == 1] == condition]
+    
+    # initialize 
+    thisReRateOnGrid = vector(length = nT)
+
+    for(i in 1 : nT){
+      t = tGrid[i]
+      # NA on the beginning, since reRate[i] is the estimate at the end of the trial i
+      if(t >= min(inputData$blockTime)){
+        thisReRateOnGrid[i] = inputData$reRate[max(which(inputData$blockTime <= t))]
+      }else{
+        thisReRateOnGrid[i] = ifelse(condition == conditions[1], iniLongRunRate, tail(junk$reRate[junk$condition == conditions[1]], 1))
+      }
+    }
+    thisAcceptMatrixOnGrid = matrix(NA, nrow = nUnqHt, ncol = nT)
+    endOfBlockTimes = inputData$blockTime[inputData$tIdxInChunk == chunkSize]
+    # NA on the end, assuming not observed actions the same as the one on the last chunk
+    for(i in 1 : nT){
+      t = tGrid[i]
+      if(t <= max(endOfBlockTimes)){
+        thisAcceptMatrixOnGrid[,i] = thisAcceptMatrix[,min(which(endOfBlockTimes >= t))]
+      }else{
+        thisAcceptMatrixOnGrid[,i] = thisAcceptMatrix[,ncol(thisAcceptMatrix)]
+      }
+    }
+    
+    if(c == 1){
+      richReRateOnGrid = thisReRateOnGrid
+      richAcceptMatrixOnGrid = thisAcceptMatrixOnGrid
+    }else{
+      poorReRateOnGrid = thisReRateOnGrid
+      poorAcceptMatrixOnGrid = thisAcceptMatrixOnGrid      
     }
   }
+  reRateOnGrid = c(richReRateOnGrid, poorReRateOnGrid)
+  acceptMatrixOnGrid = cbind(richAcceptMatrixOnGrid, poorAcceptMatrixOnGrid)
 
+  
   # return outputs
   outputs = list(
-    'tIdxInBlock' = tIdxInBlock_,
-    'tIdxInChunk' = tIdxInChunk_,
-    "rwd" = rwd_,
-    "trialEarnings" = trialEarnings_,
-    "timeSpent" = timeSpent_,
-    "reRate" = reRate_,
-    "delta" = delta_,
-    "optimLongRunRate" = optimLongRunRate,
-    "optimThreshold" = optimThreshold,
+    "iniLongRunRate" = iniLongRunRate,
+    "iniMaxAcpHt" = max(unqHts[rwd / unqHts >= iniLongRunRate]),
     "acceptMatrix" = acceptMatrix,
-    "iniThreshold" =   iniThreshold,
-    "optimNLeaveProb" = optimNLeaveProb,
-    "iniNLeaveProb" = iniNLeaveProb
+    "acceptMatrixOnGrid" = acceptMatrixOnGrid,
+    "reRateOnGrid" = reRateOnGrid
   )
-  
+  outputs = c(junk, outputs)
+  return(outputs)
 }

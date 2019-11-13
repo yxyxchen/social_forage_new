@@ -38,7 +38,7 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_){
     condition = conditions[c]
     htSeq = htSeq_[[c]]
     
-    # trialEarnings and blockTimes by the optimal agent
+    # earnings the optimal agent
     optimTrialEarnings = ifelse(htSeq <= optimMaxAcpHt_[[condition]], rwd, 0)
     optimTimeSpent = htSeq; optimTimeSpent[htSeq > optimMaxAcpHt_[[condition]]] = 0
     optimEndOfTrialTimes = cumsum(optimTimeSpent + c(0, rep(iti, length(htSeq) - 1)))
@@ -83,7 +83,6 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_){
       # update reRate given the optimal agent's outcome 
       deltaOther = (sum(optimTrialEarnings[optimEndOfTrialTimes <= blockTime & optimEndOfTrialTimes > preBlockTime]) - (spentHt + iti) * reRate) / (spentHt + iti)
       reRate = reRate + (1 - (1 - beta_other) ^ (spentHt + iti)) * delta
-      
       
       # save variables 
       if(blockTime <= blockSec){
