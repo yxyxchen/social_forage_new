@@ -47,7 +47,7 @@ RL = function(beta, tau, iniLongRunRate, htSeq_){
     blockTime_ = rep(NA, length = nTrialMax * nCondition)
     trialEarnings_ = rep(NA, length = nTrialMax * nCondition) # variable to record trialEarnings
     reRate_ = rep(NA, length = nTrialMax * nCondition) # variable to record reRate
-    delta_ = rep(NA, length = nTrialMax * nCondition) # diagnosis variable to record prediction errors
+    # delta_ = rep(NA, length = nTrialMax * nCondition) # diagnosis variable to record prediction errors
     
     # loop over trials
     blockTime = 0 # elapsedTime since the beginning of the block
@@ -67,8 +67,9 @@ RL = function(beta, tau, iniLongRunRate, htSeq_){
       # update reRate given the self-generated outcome
       # in formal R-learning, we should minus Q here. However, they should cancel out since E(Q) = 0
       # also, we use requiredHt + iti here
-      delta  = (trialEarnings - (spentHt + iti) * reRate) /  (spentHt + iti) 
-      reRate = reRate + (1 - (1 -beta) ^ (spentHt + iti)) * delta 
+      # delta  = (trialEarnings - (spentHt + iti) * reRate) /  (spentHt + iti) 
+      # reRate = reRate + (1 - (1 -beta) ^ (spentHt + iti)) * delta 
+      reRate = reRate * (1 - beta) ^ (spentHt + iti) + trialEarnings * beta
       
       #update blockTime and trialIndex
       blockTime = blockTime + spentHt + iti
@@ -83,7 +84,7 @@ RL = function(beta, tau, iniLongRunRate, htSeq_){
         blockTime_[tIdx] = blockTime
         trialEarnings_[tIdx] = trialEarnings
         reRate_[tIdx] = reRate
-        delta_[tIdx] = delta 
+        # delta_[tIdx] = delta 
       }
       # update trial index
       tIdx = tIdx + 1
@@ -97,8 +98,8 @@ RL = function(beta, tau, iniLongRunRate, htSeq_){
       'spentHt' = spentHt_,
       'blockTime' = blockTime_,
       'trialEarnings' = trialEarnings_,
-      'reRate' = reRate_,
-      'delta' = delta_
+      'reRate' = reRate_
+      #'delta' = delta_
     )
     nTrial = sum(!is.na(condition_), na.rm = T)
     tempt = tempt[1 : nTrial,]

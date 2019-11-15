@@ -34,13 +34,28 @@ dfList = lapply(1 : nSub, function(i){
   spentTime = RLResults$spentHt + iti # assume reward occurs at the end of the feedback period
   spentTime4LastRwd = c(NA, head(ave(spentTime, cumsum(spentTime != 4), FUN = cumsum), -1))
   
+  
+  # local reward fluctuation 
+  localTime = 20 # after 10s, the previous belief will be multipled by (1 - beta) ^ 10, and the new reward sequences will be added 
+  rewardUpdates = sapply(1 : length(action), function(i){
+    if(sum(spentTime[1:i]) < localTime){
+      return(NA)
+    }else{
+      timeTrace = c(tail(rev(cumsum(rev(spentTime[1:i]))), -1), 0) 
+      stopIdx = min(which(timeTrace <= localTime)) 
+      sum(RLResults$trialEarnings[stopIdx : i] * ((1 - beta) ^ timeTrace[stopIdx : i]))
+    }
+  })
+  
   data = data.frame(
     action = action,
     pastEarninings = pastEarnings1,
     pastRwdRate = pastEarnings1 / pastHt1,
     ht = RLResults$scheduledHt,
     spentTime4LastRwd = spentTime4LastRwd,
-    subId  = rep(i, length = length(action))
+    subId  = rep(i, length = length(action)),
+    condition = RLResults$condition,
+    rewardUpdate = rewardUpdates
   )
 })
 
@@ -48,6 +63,7 @@ dfList = lapply(1 : nSub, function(i){
 data = bind_rows(dfList)
 data = data[apply(data, MARGIN = 1, FUN = function(x) all(!is.na(x))),]
 
+data$rewardUpdateBin = cut(data$rewardUpdate, breaks = seq(-0.5, 8.5, by = 1), labels = c(0:8))
 
 # plot the effect of reward sizes 
 # make sure to average within each participant first. And use se across participants 
@@ -60,13 +76,13 @@ data %>% group_by(ht, subId) %>% summarise(pAccept = sum(action) / length(action
   geom_errorbar(aes(ymin = min, ymax = max, width = 1))
 
 # plot the effect of past earnings 
-data %>% group_by(spentTime4LastRwd, ht, subId) %>% summarise(pAccept = sum(action) / length(action)) %>%
-  group_by(spentTime4LastRwd, ht) %>% summarise(mu = mean(pAccept),
+data %>% group_by(rewardUpdateBin, ht, subId, condition) %>% summarise(pAccept = sum(action) / length(action)) %>% 
+  group_by(rewardUpdateBin, ht, condition) %>% summarise(mu = mean(pAccept),
                              se = sd(pAccept) / sqrt(length(pAccept)),
                              min = mu - se,
                              max = mu + se) %>%
-  ggplot(aes(spentTime4LastRwd, mu)) + geom_bar(stat = "identity") + myTheme + 
-  geom_errorbar(aes(ymin = min, ymax = max, width = 0.01)) + facet_grid(~ht)
+  ggplot(aes(rewardUpdateBin, mu)) + geom_errorbar(aes(ymin = min, ymax = max)) +
+  geom_bar(stat = "identity") + myTheme + facet_grid(condition~ht)
 
 
 # plot the effect of reward sizes 
