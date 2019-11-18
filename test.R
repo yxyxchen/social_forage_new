@@ -15,6 +15,14 @@ htSeq_ = lapply(1 : nCondition, function(i) {
   tempt[1 : nTrialMax]
 })
 
+# create the rwd sequences in two conditions
+rwds_ = c(rep(3.5, chunkSize), rep(0.5, chunkSize))
+rwdSeq_ = lapply(1 : nCondition, function(i) {
+  condition = conditions[i]
+  tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+  tempt[1 : nTrialMax]
+})
+
 
 # output dir 
 dir.create("figures")
@@ -25,15 +33,61 @@ nSub = 32
 # non_social
 richRwdRates = vector(length = nSub)
 poorRwdRates = vector(length = nSub)
+totalEarnings = vector(length = nSub)
+betas = vector(length = nSub)
+taus = vector(length = nSub)
+iniLongRunRates = vector(length = nSub)
+tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
+nT = length(tGrid) 
+acceptMatrix_ = array(NA, dim = c(nUnqHt, nT, nSub))
+trialEarningsOnGrid_ = matrix(NA, nrow = nT, ncol = nSub)
+set.seed(123)
 for(sIdx in 1 : nSub){
-  beta = runif(1, 0.001, 0.01)
-  tau = runif(1, 2, 10)
-  iniLongRunRate = runif(1, 0.15, 1)
-  RLResults = RL(beta, tau, iniLongRunRate, htSeq_)
-  richRwdRates[sIdx] = sum(RLResults$trialEarnings[RLResults$condition == "rich"]) / blockSec
-  poorRwdRates[sIdx] = sum(RLResults$trialEarnings[RLResults$condition == "poor"]) / blockSec
+  htSeq_ = lapply(1 : nCondition, function(i) {
+    condition = conditions[i]
+    tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+    tempt[1 : nTrialMax]
+  })
+  rwdSeq_ = lapply(1 : nCondition, function(i) {
+    condition = conditions[i]
+    tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+    tempt[1 : nTrialMax]
+  })
+  beta = runif(1, 0.01, 0.03); betas[sIdx] = beta
+  tau = runif(1, 5, 15); taus[sIdx] = tau;
+  iniLongRunRate = runif(1, 0.15, 0.2); iniLongRunRates[sIdx] = iniLongRunRate
+  RLResults = RL(beta, tau, iniLongRunRate, htSeq_, rwdSeq_)
+  
+  # calculate 
+  totalEarnings[sIdx] = sum(RLResults$trialEarnings)
+  acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
+  
+  # 
+  blockTime = RLResults$blockTime
+  blockTime[RLResults$condition == "poor"] = blockTime[RLResults$condition == "poor"] + blockSec
+  
+  # 
+  trialEarningsOnGrid = rep(0, length = nT)
+  intervalIdxs = findInterval(tGrid, blockTime) # the end boundary should be 1200
+  runLens = rle(intervalIdxs)$lengths
+  trialEarningsOnGrid[head(cumsum(runLens), -1)] = RLResults$trialEarnings
+  if(sIdx == 1){
+    singleTrialEarningsOnGrid = trialEarningsOnGrid
+  }
+  trialEarningsOnGrid_[,sIdx] = trialEarningsOnGrid
 }
 
-hist(poorRwdRates)
-hist(richRwdRates)
 
+# acceptMatrix = apply(acceptMatrix_, MARGIN = c(1,2), FUN = function(x) mean(x, na.rm = T))
+# plotData = data.frame(t(acceptMatrix)); colnames(plotData) =  paste(unqHts); plotData$time = tGrid
+# plotData$condition = rep(conditions, each = nT / 2)
+# plotData %>% gather(key = ht, value = pAccept, -time, -condition) %>%
+#   mutate(ht = factor(ht, levels = unqHts)) %>%
+#   ggplot(aes(time, pAccept)) + geom_line(size = 1) + facet_wrap(~ht) + 
+#   myTheme + xlab("Time (s)") + ylab("Percentage of accepted trials(%)") +
+#   scale_y_continuous(limits = c(-0.1, 1.1), breaks = c(0, 0.5, 1))
+
+trialEarningsOnGrid = apply(trialEarningsOnGrid_[,totalEarnings > 205], MARGIN = 1, FUN = function(x) mean(x, na.rm = T))
+
+save("trialEarningsOnGrid", "singleTrialEarningsOnGrid", 
+     file = "others.RData")

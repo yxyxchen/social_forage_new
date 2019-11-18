@@ -25,7 +25,7 @@
 # optimNLeaveProb [1x1 real]: number of forgone prob rewards optimally 
 # optimMinAcpRwd [1x1 real]: minimal reward accepted under the optimal policy
 
-RL = function(beta, tau, iniLongRunRate, htSeq_){
+RL = function(beta, tau, iniLongRunRate, htSeq_, rwdSeq_){
   # load expParas
   load("expParas.RData")
   
@@ -37,12 +37,14 @@ RL = function(beta, tau, iniLongRunRate, htSeq_){
   for(c in 1 : nCondition){
     condition = conditions[c]
     htSeq = htSeq_[[c]]
+    rwdSeq = rwdSeq_[[c]]
     
     # initialize recording variables 
     condition_ = rep(NA, length = nCondition * nTrialMax)
     tIdxInChunk_ = rep(NA, length = nCondition * nTrialMax)
     cIdxInBlock_ = rep(NA, length = nCondition * nTrialMax)
     scheduledHt_ = rep(NA, length = nTrialMax * nCondition) # scheduled ht
+    scheduledRwd_ = rep(NA, length = nTrialMax * nCondition) # scheduled ht
     spentHt_ = rep(NA, length = nTrialMax * nCondition) # variables to record spent time, if engage = ht otherwise = 0
     blockTime_ = rep(NA, length = nTrialMax * nCondition)
     trialEarnings_ = rep(NA, length = nTrialMax * nCondition) # variable to record trialEarnings
@@ -55,13 +57,13 @@ RL = function(beta, tau, iniLongRunRate, htSeq_){
     while(blockTime < blockSec){
       # current ht
       scheduledHt = htSeq[[tIdx]]
-      
+      scheduledRwd = rwdSeq[[tIdx]]
       # make the action
       pAccept = 1 / (1 + exp( ((scheduledHt) * reRate - rwd) * tau)) 
       action = ifelse(runif(1) <= pAccept, "accept", "forgo") 
       
       # record trialEarnings and spentHt
-      trialEarnings = ifelse(action == "accept", rwd, 0)
+      trialEarnings = ifelse(action == "accept", scheduledRwd, 0)
       spentHt = ifelse(action == "accept", scheduledHt, 0)
       
       # update reRate given the self-generated outcome
@@ -80,6 +82,7 @@ RL = function(beta, tau, iniLongRunRate, htSeq_){
         cIdxInBlock_[tIdx] = ceiling(tIdx / chunkSize)
         condition_[tIdx] = condition
         scheduledHt_[tIdx] = scheduledHt
+        scheduledRwd_[tIdx] = scheduledRwd
         spentHt_[tIdx] = spentHt
         blockTime_[tIdx] = blockTime
         trialEarnings_[tIdx] = trialEarnings
@@ -95,6 +98,7 @@ RL = function(beta, tau, iniLongRunRate, htSeq_){
       'tIdxInChunk' = tIdxInChunk_,
       'cIdxInBlock' = cIdxInBlock_,
       'scheduledHt' = scheduledHt_,
+      'scheduledRwd' = scheduledRwd_,
       'spentHt' = spentHt_,
       'blockTime' = blockTime_,
       'trialEarnings' = trialEarnings_,
@@ -125,14 +129,14 @@ RL = function(beta, tau, iniLongRunRate, htSeq_){
   for(i in 1 : nUnqHt){                                                                                                                                                                                                                                                                                                                                                                                                                                              
     for(j in 1 : nChunk){
       if(sum(junk$scheduledHt == unqHts[i] & junk$ckIdxInTask == j) != 0){
-        acceptMatrix[i, j] = mean(junk$trialEarnings[junk$scheduledHt == unqHts[i] & junk$ckIdxInTask == j] == rwd)
+        acceptMatrix[i, j] = mean(junk$spentHt[junk$scheduledHt == unqHts[i] & junk$ckIdxInTask == j] > 4)
       }else{
         acceptMatrix[i, j] = NA
       }
     }                                               
   }
        
-  tGrid = seq(0, blockSec, by = 0.5)  
+  tGrid = seq(0, blockSec, by = tGridGap)  
   nT = length(tGrid) 
   # map reRate and acceptMatrix to a standard time grid    
   for(c in 1 : nCondition){
