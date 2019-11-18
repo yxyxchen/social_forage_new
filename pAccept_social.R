@@ -8,6 +8,9 @@ source("subFxs/plotThemes.R")
 library("data.table")
 # load expParas
 load("expParas.RData")
+load("others.RData")
+
+rwds_ = c(rep(3.5, chunkSize), rep(0.5, chunkSize))
 
 # simulation
 dir.create("figures")
@@ -64,20 +67,22 @@ dfList = lapply(1 : nSub, function(i){
     ht = RLResults$scheduledHt,
     condition = RLResults$condition,
     trialEarnings = RLResults$trialEarnings,
-    pastEarninings = pastEarnings1,
+    pastEarnings = pastEarnings1,
     action = action,
     preAction  = c(NA, head(action, -1)),
     pastRwdRate = pastEarnings1 / pastHt1,
     rewardUpdate = rewardUpdates,
     preSpentTime = preSpentTime,
-    spentTime4LastRwd = spentTime4LastRwd
+    spentTime4LastRwd = spentTime4LastRwd,
+    trialEarningsOther = RLResults$trialEarningsOther,
+    preTrialEarningsOther = c(NA, head(RLResults$trialEarningsOther, -1))
   )
 
 })
 data = bind_rows(dfList)
 data = data[apply(data, MARGIN = 1, FUN = function(x) all(!is.na(x))),]
 data$rewardUpdateBin = cut(data$rewardUpdate, breaks = seq(-0.5, 8.5, by = 0.5), labels = seq(0:17))
-
+data$preTrialEarningsOtherBin = cut(data$preTrialEarningsOther, breaks = c(0, 0.5, 1, 1.5, 2, 2.5, 5), labels = 1:6)
 # plot the effect of reward sizes and environments 
 # make sure to average within each participant first. And use se across participants 
 data %>% group_by(ht, subId, condition) %>% summarise(pAccept = sum(action) / length(action)) %>%
@@ -90,18 +95,27 @@ data %>% group_by(ht, subId, condition) %>% summarise(pAccept = sum(action) / le
   xlab("Handling time (s)") + ylab("Acceptance (%)")
 
 # plot the effect of trial earnings 
-data %>% dplyr::filter((data$ht > 2) & (data$preAction == 1)) %>% 
-  group_by(pastEarninings, subId) %>%
+data %>% filter((data$ht > 2) & (data$preAction == 1)) %>% 
+  group_by(pastEarnings, subId) %>%
   summarise(pAccept = sum(action) / length(action)) %>% 
-  group_by(pastEarninings) %>% summarise(mu = mean(pAccept),
+  group_by(pastEarnings) %>% summarise(mu = mean(pAccept),
                                                    se = sd(pAccept) / sqrt(length(pAccept)),
                                                    min = mu - se,
                                                    max = mu + se) %>%
-  ggplot(aes(as.factor(pastEarninings), mu)) +
+  ggplot(aes(as.factor(pastEarnings), mu)) +
   geom_bar(stat = "identity", fill = "#767676") +
   geom_errorbar(aes(ymin = min, ymax = max), width = 0.3 ) +
   myTheme + xlab("Previous reward") + ylab("Acceptance (%)")
 
 # effect of social information
-
-
+data %>%  filter((data$ht > 2) & (data$preAction == 1)) %>% 
+  group_by(subId, preTrialEarningsOtherBin, pastEarnings) %>%
+  summarise(pAccept = sum(action) / length(action)) %>% 
+  group_by(preTrialEarningsOtherBin, pastEarnings) %>% summarise(mu = mean(pAccept),
+                                         se = sd(pAccept) / sqrt(length(pAccept)),
+                                         min = mu - se,
+                                         max = mu + se) %>%
+  ggplot(aes(preTrialEarningsOtherBin, mu)) +
+  geom_bar(stat = "identity", fill = "#767676") +
+  geom_errorbar(aes(ymin = min, ymax = max), width = 0.3 ) +
+  myTheme + ylab("Acceptance (%)") + facet_grid(~pastEarnings)

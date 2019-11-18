@@ -29,7 +29,9 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
   # load expParas
   load("expParas.RData")
   load("others.RData")
-  
+  tGrid = seq(0, blockSec * 2, by = tGridGap)  # tgrid for the whole task
+  nT = length(tGrid) 
+
   ############################# model ################################
   # initialize the estimate for the long-run reward rate
   reRate = iniLongRunRate 
@@ -149,8 +151,6 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
     }                                               
   }
        
-  tGrid = seq(0, blockSec, by = tGridGap)  
-  nT = length(tGrid) 
   # map reRate and acceptMatrix to a standard time grid    
   for(c in 1 : nCondition){
     condition = conditions[c]
@@ -159,7 +159,8 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
     
     # initialize 
     thisReRateOnGrid = vector(length = nT)
-
+    tGrid = seq(0, blockSec, by = tGridGap)  
+    nT = length(tGrid) 
     for(i in 1 : nT){
       t = tGrid[i]
       # NA on the beginning, since reRate[i] is the estimate at the end of the trial i
