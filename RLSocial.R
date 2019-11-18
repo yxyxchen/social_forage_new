@@ -25,18 +25,20 @@
 # optimNLeaveProb [1x1 real]: number of forgone prob rewards optimally 
 # optimMinAcpRwd [1x1 real]: minimal reward accepted under the optimal policy
 
-RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_){
+RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_){
   # load expParas
   load("expParas.RData")
+  load("others.RData")
   
   ############################# model ################################
   # initialize the estimate for the long-run reward rate
   reRate = iniLongRunRate 
-  
+  taskTime = 0
   # loop over conditions
   for(c in 1 : nCondition){
     condition = conditions[c]
     htSeq = htSeq_[[c]]
+    rwdSeq = rwdSeq_[[c]]
     
     # earnings the optimal agent
     optimTrialEarnings = ifelse(htSeq <= optimMaxAcpHt_[[condition]], rwd, 0)
@@ -48,11 +50,12 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_){
     tIdxInChunk_ = rep(NA, length = nCondition * nTrialMax)
     cIdxInBlock_ = rep(NA, length = nCondition * nTrialMax)
     scheduledHt_ = rep(NA, length = nTrialMax * nCondition) # scheduled ht
+    scheduledRwd_ = rep(NA, length = nTrialMax * nCondition) # scheduled ht
     spentHt_ = rep(NA, length = nTrialMax * nCondition) # variables to record spent time, if engage = ht otherwise = 0
     blockTime_ = rep(NA, length = nTrialMax * nCondition)
     trialEarnings_ = rep(NA, length = nTrialMax * nCondition) # variable to record trialEarnings
     reRate_ = rep(NA, length = nTrialMax * nCondition) # variable to record reRate
-    delta_ = rep(NA, length = nTrialMax * nCondition) # diagnosis variable to record prediction errors
+    trialEarningsOther_ = rep(NA, length = nTrialMax * nCondition) # variable to record trialEarnings
     
     # loop over trials
      
@@ -60,29 +63,32 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_){
     tIdx = 1
     while(blockTime < blockSec){
       # current ht
-      scheduledHt = htSeq[[tIdx]]
+      scheduledHt = htSeq[tIdx]
+      scheduledRwd = rwdSeq[tIdx]
       
       # make the action
       pAccept = 1 / (1 + exp( ((scheduledHt) * reRate - rwd) * tau)) 
       action = ifelse(runif(1) <= pAccept, "accept", "forgo") 
       
       # record trialEarnings and spentHt
-      trialEarnings = ifelse(action == "accept", rwd, 0)
+      trialEarnings = ifelse(action == "accept", scheduledRwd, 0)
       spentHt = ifelse(action == "accept", scheduledHt, 0)
       
       # update reRate given the self-generated outcome
       # in formal R-learning, we should minus Q here. However, they should cancel out since E(Q) = 0
       # also, we use requiredHt + iti here
-      delta  = (trialEarnings - (spentHt + iti) * reRate) / (spentHt + iti) # we should one sec stop of the task
-      reRate = reRate + (1 - (1 - beta_self) ^ (spentHt + iti)) * delta
+      reRate = reRate * (1 - beta_self) ^ (spentHt + iti) + trialEarnings * beta_self
       
       #update blockTime and trialIndex
-      preBlockTime = blockTime
-      blockTime = blockTime + spentHt + iti
+      preTaskTime= taskTime
+      taskTime = taskTime + spentHt + iti
+      blockTime = blockTime + spentHt +iti
       
       # update reRate given the optimal agent's outcome 
-      deltaOther = (sum(optimTrialEarnings[optimEndOfTrialTimes <= blockTime & optimEndOfTrialTimes > preBlockTime]) - (spentHt + iti) * reRate) / (spentHt + iti)
-      reRate = reRate + (1 - (1 - beta_other) ^ (spentHt + iti)) * delta
+      # trialEarningsOther = sum(optimTrialEarnings[optimEndOfTrialTimes <= blockTime & optimEndOfTrialTimes > preBlockTime])
+      trialEarningsOther = sum(trialEarningsOnGrid[tGrid <= taskTime & tGrid > preTaskTime])
+      trialEarningsOther_[tIdx] = trialEarningsOther
+      reRate = reRate * (1 - beta_other) ^ (spentHt + iti) + trialEarningsOther * beta_other
       
       # save variables 
       if(blockTime <= blockSec){
@@ -90,11 +96,11 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_){
         cIdxInBlock_[tIdx] = ceiling(tIdx / chunkSize)
         condition_[tIdx] = condition
         scheduledHt_[tIdx] = scheduledHt
+        scheduledRwd_[tIdx] = scheduledRwd
         spentHt_[tIdx] = spentHt
         blockTime_[tIdx] = blockTime
         trialEarnings_[tIdx] = trialEarnings
         reRate_[tIdx] = reRate
-        delta_[tIdx] = delta 
       }
       # update trial index
       tIdx = tIdx + 1
@@ -105,11 +111,12 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_){
       'tIdxInChunk' = tIdxInChunk_,
       'cIdxInBlock' = cIdxInBlock_,
       'scheduledHt' = scheduledHt_,
+      'scheduledRwd' = scheduledRwd_,
       'spentHt' = spentHt_,
       'blockTime' = blockTime_,
       'trialEarnings' = trialEarnings_,
       'reRate' = reRate_,
-      'delta' = delta_
+      "trialEarningsOther" = trialEarningsOther_
     )
     nTrial = sum(!is.na(condition_), na.rm = T)
     tempt = tempt[1 : nTrial,]
@@ -135,14 +142,14 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_){
   for(i in 1 : nUnqHt){                                                                                                                                                                                                                                                                                                                                                                                                                                              
     for(j in 1 : nChunk){
       if(sum(junk$scheduledHt == unqHts[i] & junk$ckIdxInTask == j) != 0){
-        acceptMatrix[i, j] = mean(junk$trialEarnings[junk$scheduledHt == unqHts[i] & junk$ckIdxInTask == j] == rwd)
+        acceptMatrix[i, j] = mean(junk$spentHt[junk$scheduledHt == unqHts[i] & junk$ckIdxInTask == j] > 4)
       }else{
         acceptMatrix[i, j] = NA
       }
     }                                               
   }
        
-  tGrid = seq(0, blockSec, by = 0.5)  
+  tGrid = seq(0, blockSec, by = tGridGap)  
   nT = length(tGrid) 
   # map reRate and acceptMatrix to a standard time grid    
   for(c in 1 : nCondition){

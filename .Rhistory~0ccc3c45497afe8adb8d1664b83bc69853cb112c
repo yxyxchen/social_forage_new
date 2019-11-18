@@ -1,0 +1,512 @@
+acceptMatrix_ = array(NA, dim = c(nUnqHt,  nT, nSub))
+for(sIdx in 1 : nSub){
+beta = runif(1, 0.001, 0.01)
+tau = runif(1, 10, 15)
+iniLongRunRate = runif(1, 0.12, 0.2)
+RLResults = RL(beta, tau, iniLongRunRate, htSeq_, rwdSeq_)
+acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
+}
+acceptMatrix = apply(acceptMatrix_, MARGIN = c(1,2), FUN = function(x) mean(x, na.rm = T))
+plotData = data.frame(t(acceptMatrix)); colnames(plotData) =  paste(unqHts); plotData$time = tGrid
+plotData$condition = rep(conditions, each = nT / 2)
+nonSocialData = plotData
+source("RL.R")
+source("RLSocial.R")
+library("ggplot2")
+library("dplyr")
+library("tidyr")
+source("subFxs/plotThemes.R")
+# output dir
+dir.create("figures")
+# simulation parameters
+nSub = 32
+# non_social
+tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
+nT = length(tGrid)
+acceptMatrix_ = array(NA, dim = c(nUnqHt,  nT, nSub))
+for(sIdx in 1 : nSub){
+htSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+tempt[1 : nTrialMax]
+})
+rwdSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+tempt[1 : nTrialMax]
+})
+beta = runif(1, 0.001, 0.01)
+tau = runif(1, 10, 15)
+iniLongRunRate = runif(1, 0.12, 0.2)
+RLResults = RL(beta, tau, iniLongRunRate, htSeq_, rwdSeq_)
+acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
+}
+# simulation parameters
+nSub = 32
+# non_social
+tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
+# load expPara
+load("expParas.RData")
+source("RL.R")
+source("RLSocial.R")
+library("ggplot2")
+library("dplyr")
+library("tidyr")
+source("subFxs/plotThemes.R")
+# output dir
+dir.create("figures")
+# simulation parameters
+nSub = 32
+# non_social
+tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
+nT = length(tGrid)
+acceptMatrix_ = array(NA, dim = c(nUnqHt,  nT, nSub))
+for(sIdx in 1 : nSub){
+htSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+tempt[1 : nTrialMax]
+})
+rwdSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+tempt[1 : nTrialMax]
+})
+beta = runif(1, 0.001, 0.01)
+tau = runif(1, 10, 15)
+iniLongRunRate = runif(1, 0.12, 0.2)
+RLResults = RL(beta, tau, iniLongRunRate, htSeq_, rwdSeq_)
+acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
+}
+rwds = c(rep(0.5, chunckSize), rep(3.5, chunkSize))
+# load expPara
+load("expParas.RData")
+chunkSize
+rwds = c(rep(0.5, chunkSize), rep(3.5, chunkSize))
+rwdSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+tempt[1 : nTrialMax]
+})
+beta = runif(1, 0.001, 0.01)
+for(sIdx in 1 : nSub){
+htSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+tempt[1 : nTrialMax]
+})
+rwds_ = c(rep(0.5, chunkSize), rep(3.5, chunkSize))
+rwdSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+tempt[1 : nTrialMax]
+})
+beta = runif(1, 0.001, 0.01)
+tau = runif(1, 10, 15)
+iniLongRunRate = runif(1, 0.12, 0.2)
+RLResults = RL(beta, tau, iniLongRunRate, htSeq_, rwdSeq_)
+acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
+}
+acceptMatrix = apply(acceptMatrix_, MARGIN = c(1,2), FUN = function(x) mean(x, na.rm = T))
+plotData = data.frame(t(acceptMatrix)); colnames(plotData) =  paste(unqHts); plotData$time = tGrid
+plotData$condition = rep(conditions, each = nT / 2)
+nonSocialData = plotData
+# social
+tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
+nT = length(tGrid)
+acceptMatrix_ = array(NA, dim = c(nUnqHt,  nT, nSub))
+# social
+tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
+nT = length(tGrid)
+acceptMatrix_ = array(NA, dim = c(nUnqHt,  nT, nSub))
+for(sIdx in 1 : nSub){
+htSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+tempt[1 : nTrialMax]
+})
+rwds_ = c(rep(0.5, chunkSize), rep(3.5, chunkSize))
+rwdSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+tempt[1 : nTrialMax]
+})
+beta_self = runif(1, 0.001, 0.01)
+beta_other = beta_self * 2
+tau = runif(1, 10, 15)
+iniLongRunRate = runif(1, 0.12, 0.2)
+RLResults = RLSocial(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
+acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
+}
+acceptMatrix = apply(acceptMatrix_, MARGIN = c(1,2), FUN = function(x) mean(x, na.rm = T))
+plotData = data.frame(t(acceptMatrix)); colnames(plotData) =  paste(unqHts); plotData$time = tGrid
+plotData$condition = rep(conditions, each = nT / 2)
+socialData = plotData
+# combine data from two conditions
+aggData = rbind(gather(socialData, key = ht, value = pAccept, -time, -condition),
+gather(nonSocialData, key = ht, value = pAccept, -time, -condition))
+aggData$social = factor(rep(c("social", "non_social"), each = nT * nUnqHt),
+levels = c("social", "non_social"))
+# calculate the ideal behavior, assuming there is noise in actions
+meanTau = 12.5
+# aggData$optimPAccept = 1 / (1 + exp(meanTau * (as.numeric(aggData$ht) * as.numeric(optimLongRunRate_[aggData$condition]) - rwd)))
+aggData$optimPAccept = ifelse(as.numeric(aggData$ht) <= as.numeric(optimMaxAcpHt_[aggData$condition]), 1, 0)
+aggData %>% mutate(ht = factor(ht, levels = unqHts)) %>%
+ggplot(aes(time, pAccept, color = social)) + geom_line(size = 1) +
+scale_color_manual(values = c("red", "black")) + facet_wrap(~ht) +
+geom_line(aes(time, optimPAccept), color = "#353535", linetype = "dashed") +
+myTheme + xlab("Time (s)") + ylab("Percentage of accepted trials(%)") +
+scale_y_continuous(limits = c(-0.1, 1.1), breaks = c(0, 0.5, 1))
+source('~/Documents/social_forage_new/RLSocial.R', echo=TRUE)
+# output dir
+dir.create("figures")
+# simulation parameters
+nSub = 32
+# non_social
+tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
+nT = length(tGrid)
+acceptMatrix_ = array(NA, dim = c(nUnqHt,  nT, nSub))
+for(sIdx in 1 : nSub){
+htSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+tempt[1 : nTrialMax]
+})
+rwds_ = c(rep(0.5, chunkSize), rep(3.5, chunkSize))
+rwdSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+tempt[1 : nTrialMax]
+})
+beta = runif(1, 0.001, 0.01)
+tau = runif(1, 10, 15)
+iniLongRunRate = runif(1, 0.12, 0.2)
+RLResults = RL(beta, tau, iniLongRunRate, htSeq_, rwdSeq_)
+acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
+}
+acceptMatrix = apply(acceptMatrix_, MARGIN = c(1,2), FUN = function(x) mean(x, na.rm = T))
+plotData = data.frame(t(acceptMatrix)); colnames(plotData) =  paste(unqHts); plotData$time = tGrid
+plotData$condition = rep(conditions, each = nT / 2)
+nonSocialData = plotData
+# social
+tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
+nT = length(tGrid)
+acceptMatrix_ = array(NA, dim = c(nUnqHt,  nT, nSub))
+for(sIdx in 1 : nSub){
+htSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+tempt[1 : nTrialMax]
+})
+rwds_ = c(rep(0.5, chunkSize), rep(3.5, chunkSize))
+rwdSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+tempt[1 : nTrialMax]
+})
+beta_self = runif(1, 0.001, 0.01)
+beta_other = beta_self * 2
+tau = runif(1, 10, 15)
+iniLongRunRate = runif(1, 0.12, 0.2)
+RLResults = RLSocial(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
+acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
+}
+source("RL.R")
+source("RLSocial.R")
+library("ggplot2")
+library("dplyr")
+library("tidyr")
+source("subFxs/plotThemes.R")
+# load expPara
+load("expParas.RData")
+# create the ht sequences in two conditions
+htSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+tempt[1 : nTrialMax]
+})
+# create the rwd sequences in two conditions
+rwds_ = c(rep(3.5, chunkSize), rep(0.5, chunkSize))
+rwdSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+tempt[1 : nTrialMax]
+})
+# output dir
+dir.create("figures")
+# simulation parameters
+nSub = 32
+# non_social
+richRwdRates = vector(length = nSub)
+poorRwdRates = vector(length = nSub)
+totalEarnings = vector(length = nSub)
+betas = vector(length = nSub)
+taus = vector(length = nSub)
+iniLongRunRates = vector(length = nSub)
+tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
+nT = length(tGrid)
+acceptMatrix_ = array(NA, dim = c(nUnqHt, nT, nSub))
+trialEarningsOnGrid_ = matrix(NA, nrow = nT, ncol = nSub)
+set.seed(123)
+for(sIdx in 1 : nSub){
+htSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+tempt[1 : nTrialMax]
+})
+rwdSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+tempt[1 : nTrialMax]
+})
+beta = runif(1, 0.01, 0.03); betas[sIdx] = beta
+tau = runif(1, 5, 15); taus[sIdx] = tau;
+iniLongRunRate = runif(1, 0.15, 0.2); iniLongRunRates[sIdx] = iniLongRunRate
+RLResults = RL(beta, tau, iniLongRunRate, htSeq_, rwdSeq_)
+# calculate
+totalEarnings[sIdx] = sum(RLResults$trialEarnings)
+acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
+#
+blockTime = RLResults$blockTime
+blockTime[RLResults$condition == "poor"] = blockTime[RLResults$condition == "poor"] + blockSec
+#
+trialEarningsOnGrid = rep(0, length = nT)
+intervalIdxs = findInterval(tGrid, blockTime) # the end boundary should be 1200
+runLens = rle(intervalIdxs)$lengths
+trialEarningsOnGrid[head(cumsum(runLens), -1)] = RLResults$trialEarnings
+if(sIdx == 1){
+singleTrialEarningsOnGrid = trialEarningsOnGrid
+}
+trialEarningsOnGrid_[,sIdx] = trialEarningsOnGrid
+}
+totalEarnings
+hist(totalEarnings)
+totalEarnings[totalEarnings > 205]
+source('~/Documents/social_forage_new/test.R', echo=TRUE)
+for(sIdx in 1 : nSub){
+htSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+tempt[1 : nTrialMax]
+})
+rwdSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+tempt[1 : nTrialMax]
+})
+beta = runif(1, 0.01, 0.03); betas[sIdx] = beta
+tau = runif(1, 5, 15); taus[sIdx] = tau;
+iniLongRunRate = runif(1, 0.15, 0.2); iniLongRunRates[sIdx] = iniLongRunRate
+RLResults = RL(beta, tau, iniLongRunRate, htSeq_, rwdSeq_)
+# calculate
+totalEarnings[sIdx] = sum(RLResults$trialEarnings)
+acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
+#
+blockTime = RLResults$blockTime
+blockTime[RLResults$condition == "poor"] = blockTime[RLResults$condition == "poor"] + blockSec
+#
+trialEarningsOnGrid = rep(0, length = nT)
+intervalIdxs = findInterval(tGrid, blockTime) # the end boundary should be 1200
+runLens = rle(intervalIdxs)$lengths
+trialEarningsOnGrid[head(cumsum(runLens), -1)] = RLResults$trialEarnings
+if(sIdx == 1){
+singleTrialEarningsOnGrid = trialEarningsOnGrid
+}
+trialEarningsOnGrid_[,sIdx] = trialEarningsOnGrid
+}
+trialEarningsOnGrid = apply(trialEarningsOnGrid_[totalEarnings > 205], MARGIN = 1, FUN = function(x) mean(x, na.rm = T))
+trialEarningsOnGrid_[totalEarnings > 205]
+length(trialEarningsOnGrid_)
+trialEarningsOnGrid = apply(trialEarningsOnGrid_[,totalEarnings > 205], MARGIN = 1, FUN = function(x) mean(x, na.rm = T))
+save("trialEarningsOnGrid", "singleTrialEarningsOnGrid",
+file = "others.RData")
+source('~/Documents/social_forage_new/learnCurve.R', echo=TRUE)
+# social
+tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
+nT = length(tGrid)
+acceptMatrix_ = array(NA, dim = c(nUnqHt,  nT, nSub))
+for(sIdx in 1 : nSub){
+htSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+tempt[1 : nTrialMax]
+})
+rwds_ = c(rep(0.5, chunkSize), rep(3.5, chunkSize))
+rwdSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+tempt[1 : nTrialMax]
+})
+beta_self = runif(1, 0.001, 0.01)
+beta_other = beta_self * 2
+tau = runif(1, 10, 15)
+iniLongRunRate = runif(1, 0.12, 0.2)
+RLResults = RLSocial(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
+acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
+}
+RLResults$trialEarningsOther
+sum(RLResults$trialEarningsOther)
+sum(trialEarningsOnGrid)
+load("expParas.RData")
+load("others.RData")
+############################# model ################################
+# initialize the estimate for the long-run reward rate
+reRate = iniLongRunRate
+c = 1
+condition = conditions[c]
+htSeq = htSeq_[[c]]
+rwdSeq = rwdSeq_[[c]]
+# earnings the optimal agent
+optimTrialEarnings = ifelse(htSeq <= optimMaxAcpHt_[[condition]], rwd, 0)
+optimTimeSpent = htSeq; optimTimeSpent[htSeq > optimMaxAcpHt_[[condition]]] = 0
+optimEndOfTrialTimes = cumsum(optimTimeSpent + c(0, rep(iti, length(htSeq) - 1)))
+# initialize recording variables
+condition_ = rep(NA, length = nCondition * nTrialMax)
+tIdxInChunk_ = rep(NA, length = nCondition * nTrialMax)
+cIdxInBlock_ = rep(NA, length = nCondition * nTrialMax)
+scheduledHt_ = rep(NA, length = nTrialMax * nCondition) # scheduled ht
+scheduledRwd_ = rep(NA, length = nTrialMax * nCondition) # scheduled ht
+spentHt_ = rep(NA, length = nTrialMax * nCondition) # variables to record spent time, if engage = ht otherwise = 0
+blockTime_ = rep(NA, length = nTrialMax * nCondition)
+trialEarnings_ = rep(NA, length = nTrialMax * nCondition) # variable to record trialEarnings
+reRate_ = rep(NA, length = nTrialMax * nCondition) # variable to record reRate
+trialEarningsOther_ = rep(NA, length = nTrialMax * nCondition) # variable to record trialEarnings
+blockTime = 0 # elapsedTime since the beginning of the block
+tIdx = 1
+# current ht
+scheduledHt = htSeq[[tIdx]]
+scheduledRwd = rwdSeq[[tIdx]]
+# make the action
+pAccept = 1 / (1 + exp( ((scheduledHt) * reRate - rwd) * tau))
+action = ifelse(runif(1) <= pAccept, "accept", "forgo")
+# record trialEarnings and spentHt
+trialEarnings = ifelse(action == "accept", scheduledRwd, 0)
+spentHt = ifelse(action == "accept", scheduledHt, 0)
+# update reRate given the self-generated outcome
+# in formal R-learning, we should minus Q here. However, they should cancel out since E(Q) = 0
+# also, we use requiredHt + iti here
+reRate = reRate * (1 - beta_self) ^ (spentHt + iti) + trialEarnings * beta_self
+#update blockTime and trialIndex
+preBlockTime = blockTime
+preBlockTime = blockTime
+blockTime = blockTime + spentHt + iti
+# update reRate given the optimal agent's outcome
+# trialEarningsOther = sum(optimTrialEarnings[optimEndOfTrialTimes <= blockTime & optimEndOfTrialTimes > preBlockTime])
+trialEarningsOther = sum(trialEarningsOnGrid[tGrid <= blockTime & tGrid > preBlockTime])
+trialEarningsOther_[tIdx] = trialEarningsOther
+reRate = reRate * (1 - beta_other) ^ (spentHt + iti) + trialEarningsOther * beta_other
+# save variables
+if(blockTime <= blockSec){
+tIdxInChunk_[tIdx] = ifelse(tIdx %% chunkSize == 0, chunkSize, tIdx %% chunkSize)
+cIdxInBlock_[tIdx] = ceiling(tIdx / chunkSize)
+condition_[tIdx] = condition
+scheduledHt_[tIdx] = scheduledHt
+scheduledRwd_[tIdx] = scheduledRwd
+spentHt_[tIdx] = spentHt
+blockTime_[tIdx] = blockTime
+trialEarnings_[tIdx] = trialEarnings
+reRate_[tIdx] = reRate
+}
+blockTime
+preBlockTime
+trialEarningsOnGrid[tGrid <= blockTime & tGrid > preBlockTime]
+sum(trialEarningsOnGrid[tGrid <= blockTime & tGrid > preBlockTime])
+# update reRate given the optimal agent's outcome
+# trialEarningsOther = sum(optimTrialEarnings[optimEndOfTrialTimes <= blockTime & optimEndOfTrialTimes > preBlockTime])
+trialEarningsOther = sum(trialEarningsOnGrid[tGrid <= blockTime & tGrid > preBlockTime])
+sum(trialEarningsOnGrid)
+# update trial index
+tIdx = tIdx + 1
+# current ht
+scheduledHt = htSeq[[tIdx]]
+scheduledRwd = rwdSeq[[tIdx]]
+# make the action
+pAccept = 1 / (1 + exp( ((scheduledHt) * reRate - rwd) * tau))
+action = ifelse(runif(1) <= pAccept, "accept", "forgo")
+# record trialEarnings and spentHt
+trialEarnings = ifelse(action == "accept", scheduledRwd, 0)
+spentHt = ifelse(action == "accept", scheduledHt, 0)
+# update reRate given the self-generated outcome
+# in formal R-learning, we should minus Q here. However, they should cancel out since E(Q) = 0
+# also, we use requiredHt + iti here
+reRate = reRate * (1 - beta_self) ^ (spentHt + iti) + trialEarnings * beta_self
+#update blockTime and trialIndex
+preBlockTime = blockTime
+preBlockTime = blockTime
+blockTime = blockTime + spentHt + iti
+blockTime
+preBlockTime
+source('~/Documents/social_forage_new/RLSocial.R', echo=TRUE)
+RLResults = RLSocial(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
+sum(RLResults$trialEarningsOther)
+RLResults$blockTime
+source('~/Documents/social_forage_new/RLSocial.R', echo=TRUE)
+# social
+tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
+nT = length(tGrid)
+acceptMatrix_ = array(NA, dim = c(nUnqHt,  nT, nSub))
+for(sIdx in 1 : nSub){
+htSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+tempt[1 : nTrialMax]
+})
+rwds_ = c(rep(0.5, chunkSize), rep(3.5, chunkSize))
+rwdSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+tempt[1 : nTrialMax]
+})
+beta_self = runif(1, 0.001, 0.01)
+beta_other = beta_self * 2
+tau = runif(1, 10, 15)
+iniLongRunRate = runif(1, 0.12, 0.2)
+RLResults = RLSocial(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
+acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
+}
+RLResults = RLSocial(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
+source('~/Documents/social_forage_new/RLSocial.R', echo=TRUE)
+RLResults = RLSocial(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
+source('~/Documents/social_forage_new/RLSocial.R', echo=TRUE)
+# social
+tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
+nT = length(tGrid)
+acceptMatrix_ = array(NA, dim = c(nUnqHt,  nT, nSub))
+for(sIdx in 1 : nSub){
+htSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+tempt[1 : nTrialMax]
+})
+rwds_ = c(rep(0.5, chunkSize), rep(3.5, chunkSize))
+rwdSeq_ = lapply(1 : nCondition, function(i) {
+condition = conditions[i]
+tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+tempt[1 : nTrialMax]
+})
+beta_self = runif(1, 0.001, 0.01)
+beta_other = beta_self * 2
+tau = runif(1, 10, 15)
+iniLongRunRate = runif(1, 0.12, 0.2)
+RLResults = RLSocial(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
+acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
+}
+acceptMatrix = apply(acceptMatrix_, MARGIN = c(1,2), FUN = function(x) mean(x, na.rm = T))
+plotData = data.frame(t(acceptMatrix)); colnames(plotData) =  paste(unqHts); plotData$time = tGrid
+plotData$condition = rep(conditions, each = nT / 2)
+socialData = plotData
+# combine data from two conditions
+aggData = rbind(gather(socialData, key = ht, value = pAccept, -time, -condition),
+gather(nonSocialData, key = ht, value = pAccept, -time, -condition))
+aggData$social = factor(rep(c("social", "non_social"), each = nT * nUnqHt),
+levels = c("social", "non_social"))
+# calculate the ideal behavior, assuming there is noise in actions
+meanTau = 12.5
+# aggData$optimPAccept = 1 / (1 + exp(meanTau * (as.numeric(aggData$ht) * as.numeric(optimLongRunRate_[aggData$condition]) - rwd)))
+aggData$optimPAccept = ifelse(as.numeric(aggData$ht) <= as.numeric(optimMaxAcpHt_[aggData$condition]), 1, 0)
+aggData %>% mutate(ht = factor(ht, levels = unqHts)) %>%
+ggplot(aes(time, pAccept, color = social)) + geom_line(size = 1) +
+scale_color_manual(values = c("red", "black")) + facet_wrap(~ht) +
+geom_line(aes(time, optimPAccept), color = "#353535", linetype = "dashed") +
+myTheme + xlab("Time (s)") + ylab("Percentage of accepted trials(%)") +
+scale_y_continuous(limits = c(-0.1, 1.1), breaks = c(0, 0.5, 1))

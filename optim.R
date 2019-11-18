@@ -1,4 +1,5 @@
 rwd = 2
+
 iti = 4 # travel time 
 conditions = c("rich", "poor")
 nCondition = length(conditions)
@@ -29,6 +30,8 @@ blockSec = 600
 nTrialMax = blockSec / iti
 nChunkMax = ceiling(nTrialMax / chunkSize)
 
+
+tGridGap = 1
 # save 
 save("rwd", "iti", "conditions",
      "nCondition", "hts_", "unqHts", "chunkSize",
@@ -37,6 +40,7 @@ save("rwd", "iti", "conditions",
      "optimLongRunRate_", "optimMaxAcpHt_",
      "blockSec",
      "nTrialMax", "nChunkMax",
+     "tGridGap",
      file = "expParas.RData")
 
 optimMaxAcpHt_

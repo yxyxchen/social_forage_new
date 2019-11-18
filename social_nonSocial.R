@@ -1,4 +1,4 @@
-social_nonSocial = function(htSeq_){
+social_nonSocial = function(){
   source("RL.R")
   source("RLSocial.R")
   library("ggplot2")
@@ -13,35 +13,57 @@ social_nonSocial = function(htSeq_){
   nSub = 32
   
   # non_social
-  tGrid = c(seq(0, blockSec, by = 0.5), seq(0, blockSec, by = 0.5) + blockSec)
+  tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
   nT = length(tGrid) 
   acceptMatrix_ = array(NA, dim = c(nUnqHt,  nT, nSub))
   for(sIdx in 1 : nSub){
+    htSeq_ = lapply(1 : nCondition, function(i) {
+      condition = conditions[i]
+      tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+      tempt[1 : nTrialMax]
+    })
+    rwds_ = c(rep(0.5, chunkSize), rep(3.5, chunkSize))
+    rwdSeq_ = lapply(1 : nCondition, function(i) {
+      condition = conditions[i]
+      tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+      tempt[1 : nTrialMax]
+    })
     beta = runif(1, 0.001, 0.01)
     tau = runif(1, 10, 15)
-    iniLongRunRate = runif(1, 0.15, 1)
-    RLResults = RL(beta, tau, iniLongRunRate, htSeq_)
+    iniLongRunRate = runif(1, 0.12, 0.2)
+    RLResults = RL(beta, tau, iniLongRunRate, htSeq_, rwdSeq_)
     acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
   }
-  acceptMatrix = apply(acceptMatrix_, MARGIN = c(1,2), FUN = function(x) mean(x, rm.na = T))
+  acceptMatrix = apply(acceptMatrix_, MARGIN = c(1,2), FUN = function(x) mean(x, na.rm = T))
   plotData = data.frame(t(acceptMatrix)); colnames(plotData) =  paste(unqHts); plotData$time = tGrid
   plotData$condition = rep(conditions, each = nT / 2)
   nonSocialData = plotData
   
   
   # social
-  tGrid = c(seq(0, blockSec, by = 0.5), seq(0, blockSec, by = 0.5) + blockSec)
+  tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
   nT = length(tGrid)
   acceptMatrix_ = array(NA, dim = c(nUnqHt,  nT, nSub))
   for(sIdx in 1 : nSub){
+    htSeq_ = lapply(1 : nCondition, function(i) {
+      condition = conditions[i]
+      tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
+      tempt[1 : nTrialMax]
+    })
+    rwds_ = c(rep(0.5, chunkSize), rep(3.5, chunkSize))
+    rwdSeq_ = lapply(1 : nCondition, function(i) {
+      condition = conditions[i]
+      tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
+      tempt[1 : nTrialMax]
+    })
     beta_self = runif(1, 0.001, 0.01)
     beta_other = beta_self * 2
     tau = runif(1, 10, 15)
-    iniLongRunRate = runif(1, 0.15, 1)
-    RLResults = RLSocial(beta_self, beta_other, tau, iniLongRunRate, htSeq_)
+    iniLongRunRate = runif(1, 0.12, 0.2)
+    RLResults = RLSocial(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
     acceptMatrix_[, ,sIdx] = RLResults$acceptMatrixOnGrid
   }
-  acceptMatrix = apply(acceptMatrix_, MARGIN = c(1,2), FUN = function(x) mean(x, rm.na = T))
+  acceptMatrix = apply(acceptMatrix_, MARGIN = c(1,2), FUN = function(x) mean(x, na.rm = T))
   plotData = data.frame(t(acceptMatrix)); colnames(plotData) =  paste(unqHts); plotData$time = tGrid
   plotData$condition = rep(conditions, each = nT / 2)
   socialData = plotData
