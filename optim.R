@@ -1,4 +1,6 @@
 rwd = 2
+highRwd = 3.5
+lowRwd = 0.5
 
 iti = 4 # travel time 
 conditions = c("rich", "poor")
