@@ -172,7 +172,7 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
     }
     thisAcceptMatrixOnGrid = matrix(NA, nrow = nUnqHt, ncol = nT)
     endOfBlockTimes = inputData$blockTime[inputData$tIdxInChunk == chunkSize]
-    # NA on the end, assuming not observed actions the same as the one on the last chunk
+    # originally NA on the end, assuming not observed actions the same as the one on the last chunk
     for(i in 1 : nT){
       t = tGrid[i]
       if(t <= max(endOfBlockTimes)){
@@ -190,8 +190,8 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
       poorAcceptMatrixOnGrid = thisAcceptMatrixOnGrid      
     }
   }
-  reRateOnGrid = c(richReRateOnGrid, poorReRateOnGrid)
-  acceptMatrixOnGrid = cbind(richAcceptMatrixOnGrid, poorAcceptMatrixOnGrid)
+  reRateOnGrid = c(head(richReRateOnGrid, -1), poorReRateOnGrid)
+  acceptMatrixOnGrid = cbind(richAcceptMatrixOnGrid[, 1: ncol(richAcceptMatrixOnGrid)-1], poorAcceptMatrixOnGrid)
 
   
   # return outputs

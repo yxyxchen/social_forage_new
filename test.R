@@ -37,7 +37,7 @@ totalEarnings = vector(length = nSub)
 betas = vector(length = nSub)
 taus = vector(length = nSub)
 iniLongRunRates = vector(length = nSub)
-tGrid = c(seq(0, blockSec, by = tGridGap), seq(0, blockSec, by = tGridGap) + blockSec)
+tGrid = seq(0, blockSec * 2, by = tGridGap)
 nT = length(tGrid) 
 acceptMatrix_ = array(NA, dim = c(nUnqHt, nT, nSub))
 trialEarningsOnGrid_ = matrix(NA, nrow = nT, ncol = nSub)
@@ -88,6 +88,9 @@ for(sIdx in 1 : nSub){
 #   scale_y_continuous(limits = c(-0.1, 1.1), breaks = c(0, 0.5, 1))
 
 trialEarningsOnGrid = apply(trialEarningsOnGrid_[,totalEarnings > 205], MARGIN = 1, FUN = function(x) mean(x, na.rm = T))
+write.csv(trialEarningsOnGrid, file = "others.csv")
 
 save("trialEarningsOnGrid", "singleTrialEarningsOnGrid", 
      file = "others.RData")
+
+# wirte the trialEarnings into the csv

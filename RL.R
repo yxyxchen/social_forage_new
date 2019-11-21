@@ -176,8 +176,8 @@ RL = function(beta, tau, iniLongRunRate, htSeq_, rwdSeq_){
       poorAcceptMatrixOnGrid = thisAcceptMatrixOnGrid      
     }
   }
-  reRateOnGrid = c(richReRateOnGrid, poorReRateOnGrid)
-  acceptMatrixOnGrid = cbind(richAcceptMatrixOnGrid, poorAcceptMatrixOnGrid)
+  reRateOnGrid = c(head(richReRateOnGrid, -1), poorReRateOnGrid)
+  acceptMatrixOnGrid = cbind(richAcceptMatrixOnGrid[, 1: ncol(richAcceptMatrixOnGrid)-1], poorAcceptMatrixOnGrid)
 
   
   # return outputs
