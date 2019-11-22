@@ -11,5 +11,5 @@ load("expParas.RData")
 # shuffle all possive rewards to generate the reward sequence
 # call the function
 social_nonSocial()
-# ggsave("learn_curve.png", width =5, height = 3.5)
+ggsave("learn_curve.png", width = 10, height = 3)
 

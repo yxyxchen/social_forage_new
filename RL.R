@@ -129,7 +129,7 @@ RL = function(beta, tau, iniLongRunRate, htSeq_, rwdSeq_){
   for(i in 1 : nUnqHt){                                                                                                                                                                                                                                                                                                                                                                                                                                              
     for(j in 1 : nChunk){
       if(sum(junk$scheduledHt == unqHts[i] & junk$ckIdxInTask == j) != 0){
-        acceptMatrix[i, j] = mean(junk$spentHt[junk$scheduledHt == unqHts[i] & junk$ckIdxInTask == j] > 4)
+        acceptMatrix[i, j] = mean(junk$spentHt[junk$scheduledHt == unqHts[i] & junk$ckIdxInTask == j] > 0)
       }else{
         acceptMatrix[i, j] = NA
       }
@@ -138,7 +138,7 @@ RL = function(beta, tau, iniLongRunRate, htSeq_, rwdSeq_){
        
   tGrid = seq(0, blockSec, by = tGridGap)  
   nT = length(tGrid) 
-  # map reRate and acceptMatrix to a standard time grid    
+  # map reRate and atrix to a standard time grid    
   for(c in 1 : nCondition){
     condition = conditions[c]
     inputData  = junk[junk$condition == condition,]

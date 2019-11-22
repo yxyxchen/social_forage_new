@@ -6,7 +6,7 @@ iti = 4 # travel time
 conditions = c("rich", "poor")
 nCondition = length(conditions)
 hts_ = list("rich" = c(18, 13, 10, 2, 2, 2, 2), "poor" = c(18, 18, 18, 18, 13, 10, 2))
-unqHts = unique(hts_$rich)
+unqHts = sort(unique(hts_$rich))
 nUnqHt = length(unqHts)
 chunkSize = 7
 

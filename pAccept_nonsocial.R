@@ -83,14 +83,24 @@ data$rewardUpdateBin = cut(data$rewardUpdate, breaks = seq(-0.5, 8.5, by = 0.5),
 
 # plot the effect of reward sizes and environments 
 # make sure to average within each participant first. And use se across participants 
-data %>% group_by(ht, subId, condition) %>% summarise(pAccept = sum(action) / length(action)) %>%
+plotData = data %>% group_by(ht, subId, condition) %>% summarise(pAccept = sum(action) / length(action)) %>%
   group_by(ht, condition) %>% summarise(mu = mean(pAccept),
                              se = sd(pAccept) / sqrt(length(pAccept)),
                              min = mu - se,
-                             max = mu + se) %>%
-  ggplot(aes(as.factor(ht), mu, fill = condition)) + geom_bar(stat = "identity", position = "dodge") + myTheme +
-  geom_errorbar(aes(ymin = min, ymax = max, width = 0.3), position = position_dodge(width=0.9)) +
-  xlab("Handling time (s)") + ylab("Acceptance (%)")
+                             max = mu + se) 
+
+as.data.frame(plotData) %>% mutate(ht = as.factor(ht)) %>%
+  ggplot(aes(ht, mu)) +
+  geom_bar(stat = "identity", position = "dodge", aes(fill = condition)) +
+  myTheme +geom_errorbar(aes(ymin = min, ymax = max, width = 0.3),
+                         position=position_dodge(width=0.9)) +
+  xlab("Handling time (s)") + ylab("Acceptance (%)") + 
+  theme(legend.title=element_blank()) +
+  scale_fill_manual(values = c("#9ecae1", "#ffeda0"))
+
+
+mkdir('figures')
+ggsave("figures/condition_option_nonsocial.png", width = 4, height = 3)
 
 # plot the effect of trial earnings 
 data %>% dplyr::filter((data$ht > 2) & (data$preAction == 1)) %>% 
@@ -104,5 +114,7 @@ data %>% dplyr::filter((data$ht > 2) & (data$preAction == 1)) %>%
   geom_bar(stat = "identity", fill = "#767676") +
   geom_errorbar(aes(ymin = min, ymax = max), width = 0.3 ) +
   myTheme + xlab("Previous reward") + ylab("Acceptance (%)")
+
+ggsave("figures/reward_history_nonsocial.png", width = 4, height = 3)
 
 

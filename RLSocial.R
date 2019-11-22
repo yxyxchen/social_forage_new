@@ -144,7 +144,7 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
   for(i in 1 : nUnqHt){                                                                                                                                                                                                                                                                                                                                                                                                                                              
     for(j in 1 : nChunk){
       if(sum(junk$scheduledHt == unqHts[i] & junk$ckIdxInTask == j) != 0){
-        acceptMatrix[i, j] = mean(junk$spentHt[junk$scheduledHt == unqHts[i] & junk$ckIdxInTask == j] > 4)
+        acceptMatrix[i, j] = mean(junk$spentHt[junk$scheduledHt == unqHts[i] & junk$ckIdxInTask == j] > 0)
       }else{
         acceptMatrix[i, j] = NA
       }
