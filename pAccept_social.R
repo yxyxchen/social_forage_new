@@ -82,7 +82,7 @@ dfList = lapply(1 : nSub, function(i){
 data = bind_rows(dfList)
 data = data[apply(data, MARGIN = 1, FUN = function(x) all(!is.na(x))),]
 data$rewardUpdateBin = cut(data$rewardUpdate, breaks = seq(-0.5, 8.5, by = 0.5), labels = seq(0:17))
-data$preTrialEarningsOtherBin = cut(data$preTrialEarningsOther, breaks = c(0, 0.5, 1, 1.5, 2, 2.5, 5), labels = 1:6)
+data$preTrialEarningsOtherBin = cut(data$preTrialEarningsOther, breaks = c(-0.1, 0.5, 4, 8), labels = 1:3)
 # plot the effect of reward sizes and environments 
 # make sure to average within each participant first. And use se across participants 
 data %>% group_by(ht, subId, condition) %>% summarise(pAccept = sum(action) / length(action)) %>%
@@ -108,14 +108,18 @@ data %>% filter((data$ht > 2) & (data$preAction == 1)) %>%
   myTheme + xlab("Previous reward") + ylab("Acceptance (%)")
 
 # effect of social information
-data %>%  filter((data$ht > 2) & (data$preAction == 1)) %>% 
-  group_by(subId, preTrialEarningsOtherBin, pastEarnings) %>%
+data %>%  filter(data$preSpentTime == 17) %>% 
+  group_by(subId, preTrialEarningsOtherBin, condition) %>%
   summarise(pAccept = sum(action) / length(action)) %>% 
-  group_by(preTrialEarningsOtherBin, pastEarnings) %>% summarise(mu = mean(pAccept),
+  group_by(preTrialEarningsOtherBin, condition) %>% summarise(mu = mean(pAccept),
                                          se = sd(pAccept) / sqrt(length(pAccept)),
                                          min = mu - se,
                                          max = mu + se) %>%
   ggplot(aes(preTrialEarningsOtherBin, mu)) +
   geom_bar(stat = "identity", fill = "#767676") +
   geom_errorbar(aes(ymin = min, ymax = max), width = 0.3 ) +
-  myTheme + ylab("Acceptance (%)") + facet_grid(~pastEarnings)
+  myTheme + ylab("Acceptance (%)") + facet_grid(~condition) +
+  xlab("Others'reward previously")
+ggsave("figures/others_payment_13.png", width = 4, height = 3)
+
+

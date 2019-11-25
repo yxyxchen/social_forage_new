@@ -1,14 +1,14 @@
 rwd = 2
-highRwd = 3.5
-lowRwd = 0.5
+highRwd = 3
+lowRwd = 1
 
-iti = 4 # travel time 
+iti = 7 # travel time 
 conditions = c("rich", "poor")
 nCondition = length(conditions)
-hts_ = list("rich" = c(18, 13, 10, 2, 2, 2, 2), "poor" = c(18, 18, 18, 18, 13, 10, 2))
+hts_ = list("rich" = c(25, 17, 15, 2, 2, 2, 2), "poor" = c(25, 17, 17, 17, 17, 15, 2))
 unqHts = sort(unique(hts_$rich))
 nUnqHt = length(unqHts)
-chunkSize = 7
+chunkSize = length(hts_$rich)
 
 # calculate the optimal longRunRate 
 # accpet hts <= threshold
@@ -26,6 +26,8 @@ for(i in 1 : nCondition){
   optimLongRunRate_[[condition]] = max(longRunRates)
   optimMaxAcpHt_[[condition]] = max(unqHts[rwd / unqHts >= optimLongRunRate_[[condition]]])
 }
+optimMaxAcpHt_
+
 
 # block constants 
 blockSec = 600

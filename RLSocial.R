@@ -88,7 +88,7 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
       
       # update reRate given the optimal agent's outcome 
       # trialEarningsOther = sum(optimTrialEarnings[optimEndOfTrialTimes <= blockTime & optimEndOfTrialTimes > preBlockTime])
-      trialEarningsOther = sum(trialEarningsOnGrid[tGrid <= taskTime & tGrid > preTaskTime])
+      trialEarningsOther = sum(singleTrialEarningsOnGrid[tGrid <= taskTime & tGrid > preTaskTime])
       trialEarningsOther_[tIdx] = trialEarningsOther
       reRate = reRate * (1 - beta_other) ^ (spentHt + iti) + trialEarningsOther * beta_other
       
