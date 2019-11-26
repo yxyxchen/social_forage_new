@@ -7,6 +7,9 @@ source("subFxs/plotThemes.R")
 
 # load expPara
 load("expParas.RData")
+blockSec = blockSec + 600
+nTrialMax = blockSec / iti
+nChunkMax = ceiling(nTrialMax / chunkSize)
 
 # output dir 
 dir.create("figures")
@@ -41,7 +44,7 @@ for(sIdx in 1 : nSub){
   beta = runif(1, 0.01, 0.03); betas[sIdx] = beta
   tau = runif(1, 10, 15); taus[sIdx] = tau;
   iniLongRunRate = runif(1, 0.02, 0.04); iniLongRunRates[sIdx] = iniLongRunRate
-  RLResults = RL(beta, tau, iniLongRunRate, htSeq_, rwdSeq_)
+  RLResults = RL(beta, tau, iniLongRunRate, htSeq_, rwdSeq_, blockSec)
   
   # calculate 
   totalEarnings[sIdx] = sum(RLResults$trialEarnings)
@@ -49,7 +52,7 @@ for(sIdx in 1 : nSub){
   
   # 
   blockTime = RLResults$blockTime
-  blockTime[RLResults$condition == "poor"] = blockTime[RLResults$condition == "poor"] + blockSec
+  blockTime[RLResults$condition == "poor"] = blockTime[RLResults$condition == "poor"] + (blockSec) 
   
   # 
   trialEarningsOnGrid = rep(0, length = nT)
@@ -72,6 +75,8 @@ plotData %>% gather(key = ht, value = pAccept, -time, -condition) %>%
 trialEarningsOnGrid = apply(trialEarningsOnGrid_[,totalEarnings > 70], MARGIN = 1, FUN = function(x) mean(x, na.rm = T))
 write.csv(trialEarningsOnGrid, file = "others.csv")
 
+data.frame(time = tGrid, trialEarnings = trialEarningsOnGrid) %>%
+  ggplot(aes(time, trialEarnings)) + geom_line()
 
 singleTrialEarningsOnGrid = trialEarningsOnGrid_[,which.max(totalEarnings)]
 

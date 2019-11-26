@@ -27,10 +27,10 @@ for(i in 1 : nCondition){
   optimMaxAcpHt_[[condition]] = max(unqHts[rwd / unqHts >= optimLongRunRate_[[condition]]])
 }
 optimMaxAcpHt_
-
+rwd / unlist(optimLongRunRate_)
 
 # block constants 
-blockSec = 600
+blockSec = 1200
 nTrialMax = blockSec / iti
 nChunkMax = ceiling(nTrialMax / chunkSize)
 
@@ -48,3 +48,4 @@ save("rwd", "iti", "conditions", "highRwd", "lowRwd",
      file = "expParas.RData")
 
 optimMaxAcpHt_
+

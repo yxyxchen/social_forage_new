@@ -25,10 +25,7 @@
 # optimNLeaveProb [1x1 real]: number of forgone prob rewards optimally 
 # optimMinAcpRwd [1x1 real]: minimal reward accepted under the optimal policy
 
-RL = function(beta, tau, iniLongRunRate, htSeq_, rwdSeq_){
-  # load expParas
-  load("expParas.RData")
-  
+RL = function(beta, tau, iniLongRunRate, htSeq_, rwdSeq_, blockSec){
   ############################# model ################################
   # initialize the estimate for the long-run reward rate
   reRate = iniLongRunRate 
