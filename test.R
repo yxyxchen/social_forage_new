@@ -8,22 +8,6 @@ source("subFxs/plotThemes.R")
 # load expPara
 load("expParas.RData")
 
-# create the ht sequences in two conditions
-htSeq_ = lapply(1 : nCondition, function(i) {
-  condition = conditions[i]
-  tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
-  tempt[1 : nTrialMax]
-})
-
-# create the rwd sequences in two conditions
-rwds_ = c(rep(3.5, chunkSize), rep(0.5, chunkSize))
-rwdSeq_ = lapply(1 : nCondition, function(i) {
-  condition = conditions[i]
-  tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
-  tempt[1 : nTrialMax]
-})
-
-
 # output dir 
 dir.create("figures")
 
@@ -37,7 +21,7 @@ totalEarnings = vector(length = nSub)
 betas = vector(length = nSub)
 taus = vector(length = nSub)
 iniLongRunRates = vector(length = nSub)
-tGrid = seq(0, blockSec * 2, by = tGridGap)
+tGrid = head(seq(0, blockSec * 2, by = tGridGap), -1)
 nT = length(tGrid) 
 acceptMatrix_ = array(NA, dim = c(nUnqHt, nT, nSub))
 trialEarningsOnGrid_ = matrix(NA, nrow = nT, ncol = nSub)
@@ -48,14 +32,15 @@ for(sIdx in 1 : nSub){
     tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
     tempt[1 : nTrialMax]
   })
+  
+  # create the rwd sequences in two conditions
   rwdSeq_ = lapply(1 : nCondition, function(i) {
-    condition = conditions[i]
-    tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
-    tempt[1 : nTrialMax]
+    tempt = replicate(ceiling(nTrialMax / 5), sample(c(rep(highRwd, 4), lowRwd), 5))
+    tempt = tempt[1 : nTrialMax]
   })
   beta = runif(1, 0.01, 0.03); betas[sIdx] = beta
-  tau = runif(1, 5, 15); taus[sIdx] = tau;
-  iniLongRunRate = runif(1, 0.15, 0.2); iniLongRunRates[sIdx] = iniLongRunRate
+  tau = runif(1, 10, 15); taus[sIdx] = tau;
+  iniLongRunRate = runif(1, 0.02, 0.04); iniLongRunRates[sIdx] = iniLongRunRate
   RLResults = RL(beta, tau, iniLongRunRate, htSeq_, rwdSeq_)
   
   # calculate 
@@ -71,26 +56,28 @@ for(sIdx in 1 : nSub){
   intervalIdxs = findInterval(tGrid, blockTime) # the end boundary should be 1200
   runLens = rle(intervalIdxs)$lengths
   trialEarningsOnGrid[head(cumsum(runLens), -1)] = RLResults$trialEarnings
-  if(sIdx == 1){
-    singleTrialEarningsOnGrid = trialEarningsOnGrid
-  }
   trialEarningsOnGrid_[,sIdx] = trialEarningsOnGrid
 }
 
 
-# acceptMatrix = apply(acceptMatrix_, MARGIN = c(1,2), FUN = function(x) mean(x, na.rm = T))
-# plotData = data.frame(t(acceptMatrix)); colnames(plotData) =  paste(unqHts); plotData$time = tGrid
-# plotData$condition = rep(conditions, each = nT / 2)
-# plotData %>% gather(key = ht, value = pAccept, -time, -condition) %>%
-#   mutate(ht = factor(ht, levels = unqHts)) %>%
-#   ggplot(aes(time, pAccept)) + geom_line(size = 1) + facet_wrap(~ht) + 
-#   myTheme + xlab("Time (s)") + ylab("Percentage of accepted trials(%)") +
-#   scale_y_continuous(limits = c(-0.1, 1.1), breaks = c(0, 0.5, 1))
+acceptMatrix = apply(acceptMatrix_, MARGIN = c(1,2), FUN = function(x) mean(x, na.rm = T))
+plotData = data.frame(t(acceptMatrix)); colnames(plotData) =  paste(unqHts); plotData$time = tGrid
+plotData$condition = rep(conditions, each = nT / 2)
+plotData %>% gather(key = ht, value = pAccept, -time, -condition) %>%
+  mutate(ht = factor(ht, levels = unqHts)) %>%
+  ggplot(aes(time, pAccept)) + geom_line(size = 1) + facet_wrap(~ht) +
+  myTheme + xlab("Time (s)") + ylab("Percentage of accepted trials(%)") +
+  scale_y_continuous(limits = c(-0.1, 1.1), breaks = c(0, 0.5, 1))
 
-trialEarningsOnGrid = apply(trialEarningsOnGrid_[,totalEarnings > 205], MARGIN = 1, FUN = function(x) mean(x, na.rm = T))
+trialEarningsOnGrid = apply(trialEarningsOnGrid_[,totalEarnings > 70], MARGIN = 1, FUN = function(x) mean(x, na.rm = T))
 write.csv(trialEarningsOnGrid, file = "others.csv")
+
+
+singleTrialEarningsOnGrid = trialEarningsOnGrid_[,which.max(totalEarnings)]
+
 
 save("trialEarningsOnGrid", "singleTrialEarningsOnGrid", 
      file = "others.RData")
 
 # wirte the trialEarnings into the csv
+

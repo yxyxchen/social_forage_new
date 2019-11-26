@@ -10,9 +10,8 @@ library("data.table")
 load("expParas.RData")
 load("others.RData")
 
-rwds_ = c(rep(3.5, chunkSize), rep(0.5, chunkSize))
-
 # simulation
+set.seed(123)
 dir.create("figures")
 # simulate non_social data
 nSub = 32
@@ -25,14 +24,12 @@ for(sIdx in 1 : nSub){
     tempt[1 : nTrialMax]
   })
   rwdSeq_ = lapply(1 : nCondition, function(i) {
-    condition = conditions[i]
-    tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
-    tempt[1 : nTrialMax]
+    tempt = replicate(nTrialMax, ifelse((rnorm(1) < 0 & rnorm(1) < 0), lowRwd, highRwd))
   })
   # simulate 
   beta = runif(1, 0.005, 0.01)
   tau = runif(1, 3, 15)
-  iniLongRunRate = runif(1, 0.15, 1)
+  iniLongRunRate = runif(1, 0.02, 0.04)
   RLResults = RLSocial(beta, beta, tau, iniLongRunRate, htSeq_, rwdSeq_)
   RLResults_[[sIdx]] =  RLResults 
 }
@@ -81,8 +78,9 @@ dfList = lapply(1 : nSub, function(i){
 })
 data = bind_rows(dfList)
 data = data[apply(data, MARGIN = 1, FUN = function(x) all(!is.na(x))),]
-data$rewardUpdateBin = cut(data$rewardUpdate, breaks = seq(-0.5, 8.5, by = 0.5), labels = seq(0:17))
-data$preTrialEarningsOtherBin = cut(data$preTrialEarningsOther, breaks = c(-0.1, 0.5, 4, 8), labels = 1:3)
+data$rewardUpdateBin = cut(data$rewardUpdate,breaks = quantile(c(0, data$rewardUpdate, ceiling(data$rewardUpdate)),
+                                                               c(0, 1/3, 2/3, 1)), labels = 1:3)
+
 # plot the effect of reward sizes and environments 
 # make sure to average within each participant first. And use se across participants 
 data %>% group_by(ht, subId, condition) %>% summarise(pAccept = sum(action) / length(action)) %>%
@@ -108,14 +106,14 @@ data %>% filter((data$ht > 2) & (data$preAction == 1)) %>%
   myTheme + xlab("Previous reward") + ylab("Acceptance (%)")
 
 # effect of social information
-data %>%  filter(data$preSpentTime == 17) %>% 
-  group_by(subId, preTrialEarningsOtherBin, condition) %>%
+data %>%  filter(data$preSpentTime == 2 + 11) %>% 
+  group_by(subId, preTrialEarningsOther, condition) %>%
   summarise(pAccept = sum(action) / length(action)) %>% 
-  group_by(preTrialEarningsOtherBin, condition) %>% summarise(mu = mean(pAccept),
+  group_by(preTrialEarningsOther, condition) %>% summarise(mu = mean(pAccept),
                                          se = sd(pAccept) / sqrt(length(pAccept)),
                                          min = mu - se,
                                          max = mu + se) %>%
-  ggplot(aes(preTrialEarningsOtherBin, mu)) +
+  ggplot(aes(preTrialEarningsOther, mu)) +
   geom_bar(stat = "identity", fill = "#767676") +
   geom_errorbar(aes(ymin = min, ymax = max), width = 0.3 ) +
   myTheme + ylab("Acceptance (%)") + facet_grid(~condition) +

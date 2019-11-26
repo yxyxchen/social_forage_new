@@ -136,7 +136,7 @@ RL = function(beta, tau, iniLongRunRate, htSeq_, rwdSeq_){
     }                                               
   }
        
-  tGrid = seq(0, blockSec, by = tGridGap)  
+  tGrid = head(seq(0, blockSec, by = tGridGap), -1)  
   nT = length(tGrid) 
   # map reRate and atrix to a standard time grid    
   for(c in 1 : nCondition){
@@ -176,8 +176,8 @@ RL = function(beta, tau, iniLongRunRate, htSeq_, rwdSeq_){
       poorAcceptMatrixOnGrid = thisAcceptMatrixOnGrid      
     }
   }
-  reRateOnGrid = c(head(richReRateOnGrid, -1), poorReRateOnGrid)
-  acceptMatrixOnGrid = cbind(richAcceptMatrixOnGrid[, 1: ncol(richAcceptMatrixOnGrid)-1], poorAcceptMatrixOnGrid)
+  reRateOnGrid = c(richReRateOnGrid, poorReRateOnGrid)
+  acceptMatrixOnGrid = cbind(richAcceptMatrixOnGrid, poorAcceptMatrixOnGrid)
 
   
   # return outputs

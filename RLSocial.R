@@ -29,7 +29,7 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
   # load expParas
   load("expParas.RData")
   load("others.RData")
-  tGrid = seq(0, blockSec * 2, by = tGridGap)  # tgrid for the whole task
+  tGrid = head(seq(0, blockSec * 2, by = tGridGap), -1)  # tgrid for the whole task
   nT = length(tGrid) 
 
   ############################# model ################################
@@ -60,53 +60,61 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
     trialEarningsOther_ = rep(NA, length = nTrialMax * nCondition) # variable to record trialEarnings
     
     # loop over trials
-     
+    
     blockTime = 0 # elapsedTime since the beginning of the block
     tIdx = 1
-    while(blockTime < blockSec){
-      # current ht
-      scheduledHt = htSeq[tIdx]
-      scheduledRwd = rwdSeq[tIdx]
-      
-      # make the action
-      pAccept = 1 / (1 + exp( ((scheduledHt) * reRate - rwd) * tau)) 
-      action = ifelse(runif(1) <= pAccept, "accept", "forgo") 
-      
-      # record trialEarnings and spentHt
-      trialEarnings = ifelse(action == "accept", scheduledRwd, 0)
-      spentHt = ifelse(action == "accept", scheduledHt, 0)
-      
-      # update reRate given the self-generated outcome
-      # in formal R-learning, we should minus Q here. However, they should cancel out since E(Q) = 0
-      # also, we use requiredHt + iti here
-      reRate = reRate * (1 - beta_self) ^ (spentHt + iti) + trialEarnings * beta_self
-      
-      #update blockTime and trialIndex
-      preTaskTime= taskTime
-      taskTime = taskTime + spentHt + iti
-      blockTime = blockTime + spentHt +iti
-      
-      # update reRate given the optimal agent's outcome 
-      # trialEarningsOther = sum(optimTrialEarnings[optimEndOfTrialTimes <= blockTime & optimEndOfTrialTimes > preBlockTime])
-      trialEarningsOther = sum(singleTrialEarningsOnGrid[tGrid <= taskTime & tGrid > preTaskTime])
-      trialEarningsOther_[tIdx] = trialEarningsOther
-      reRate = reRate * (1 - beta_other) ^ (spentHt + iti) + trialEarningsOther * beta_other
-      
-      # save variables 
-      if(blockTime <= blockSec){
-        tIdxInChunk_[tIdx] = ifelse(tIdx %% chunkSize == 0, chunkSize, tIdx %% chunkSize)
-        cIdxInBlock_[tIdx] = ceiling(tIdx / chunkSize)
-        condition_[tIdx] = condition
-        scheduledHt_[tIdx] = scheduledHt
-        scheduledRwd_[tIdx] = scheduledRwd
-        spentHt_[tIdx] = spentHt
-        blockTime_[tIdx] = blockTime
-        trialEarnings_[tIdx] = trialEarnings
-        reRate_[tIdx] = reRate
+    tryCatch({
+      while(blockTime < blockSec){
+        # current ht
+        scheduledHt = htSeq[tIdx]
+        scheduledRwd = rwdSeq[tIdx]
+        
+        # make the action
+        pAccept = 1 / (1 + exp( ((scheduledHt) * reRate - rwd) * tau)) 
+        action = ifelse(runif(1) <= pAccept, "accept", "forgo") 
+        
+        # record trialEarnings and spentHt
+        trialEarnings = ifelse(action == "accept", scheduledRwd, 0)
+        spentHt = ifelse(action == "accept", scheduledHt, 0)
+        
+        # update reRate given the self-generated outcome
+        # in formal R-learning, we should minus Q here. However, they should cancel out since E(Q) = 0
+        # also, we use requiredHt + iti here
+        reRate = reRate * (1 - beta_self) ^ (spentHt + iti) + trialEarnings * beta_self
+        
+        #update blockTime and trialIndex
+        preTaskTime= taskTime
+        taskTime = taskTime + spentHt + iti
+        blockTime = blockTime + spentHt +iti
+        
+        # update reRate given the optimal agent's outcome 
+        # trialEarningsOther = sum(optimTrialEarnings[optimEndOfTrialTimes <= blockTime & optimEndOfTrialTimes > preBlockTime])
+        trialEarningsOther = sum(singleTrialEarningsOnGrid[tGrid <= taskTime & tGrid > preTaskTime])
+        trialEarningsOther_[tIdx] = trialEarningsOther
+        reRate = reRate * (1 - beta_other) ^ (spentHt + iti) + trialEarningsOther * beta_other
+        
+        if(is.na(reRate)){
+          browser()
+        }
+        # save variables 
+        if(blockTime <= blockSec){
+          tIdxInChunk_[tIdx] = ifelse(tIdx %% chunkSize == 0, chunkSize, tIdx %% chunkSize)
+          cIdxInBlock_[tIdx] = ceiling(tIdx / chunkSize)
+          condition_[tIdx] = condition
+          scheduledHt_[tIdx] = scheduledHt
+          scheduledRwd_[tIdx] = scheduledRwd
+          spentHt_[tIdx] = spentHt
+          blockTime_[tIdx] = blockTime
+          trialEarnings_[tIdx] = trialEarnings
+          reRate_[tIdx] = reRate
+        }
+        # update trial index
+        tIdx = tIdx + 1
       }
-      # update trial index
-      tIdx = tIdx + 1
-    }
+    },
+    error = function(e){
+      browser()
+    })
     # truncate and save
     tempt = data.frame(
       "condition" = condition_,
@@ -159,7 +167,7 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
     
     # initialize 
     thisReRateOnGrid = vector(length = nT)
-    tGrid = seq(0, blockSec, by = tGridGap)  
+    tGrid = head(seq(0, blockSec, by = tGridGap), -1)
     nT = length(tGrid) 
     for(i in 1 : nT){
       t = tGrid[i]
@@ -190,8 +198,8 @@ RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_)
       poorAcceptMatrixOnGrid = thisAcceptMatrixOnGrid      
     }
   }
-  reRateOnGrid = c(head(richReRateOnGrid, -1), poorReRateOnGrid)
-  acceptMatrixOnGrid = cbind(richAcceptMatrixOnGrid[, 1: ncol(richAcceptMatrixOnGrid)-1], poorAcceptMatrixOnGrid)
+  reRateOnGrid = c(richReRateOnGrid, poorReRateOnGrid)
+  acceptMatrixOnGrid = cbind(richAcceptMatrixOnGrid, poorAcceptMatrixOnGrid)
 
   
   # return outputs

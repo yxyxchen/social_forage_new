@@ -22,11 +22,8 @@ social_nonSocial = function(){
       tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
       tempt[1 : nTrialMax]
     })
-    rwds_ = c(rep(0.5, chunkSize), rep(3.5, chunkSize))
     rwdSeq_ = lapply(1 : nCondition, function(i) {
-      condition = conditions[i]
-      tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
-      tempt[1 : nTrialMax]
+      tempt = replicate(nTrialMax, ifelse((rnorm(1) < 0 & rnorm(1) < 0), lowRwd, highRwd))
     })
     beta = runif(1, 0.001, 0.01)
     tau = runif(1, 10, 15)
@@ -50,11 +47,8 @@ social_nonSocial = function(){
       tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
       tempt[1 : nTrialMax]
     })
-    rwds_ = c(rep(0.5, chunkSize), rep(3.5, chunkSize))
     rwdSeq_ = lapply(1 : nCondition, function(i) {
-      condition = conditions[i]
-      tempt = as.vector(replicate(ceiling(nChunkMax / 2), sample(rwds_, chunkSize * 2)))
-      tempt[1 : nTrialMax]
+      tempt = replicate(nTrialMax, ifelse((rnorm(1) < 0 & rnorm(1) < 0), lowRwd, highRwd))
     })
     beta_self = runif(1, 0.001, 0.01)
     beta_other = beta_self * 2

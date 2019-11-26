@@ -1,11 +1,11 @@
-rwd = 2
-highRwd = 3
-lowRwd = 1
+rwd = 2 * 0.8
+highRwd = 2
+lowRwd = 0
 
-iti = 7 # travel time 
+iti = 11 # travel time 
 conditions = c("rich", "poor")
 nCondition = length(conditions)
-hts_ = list("rich" = c(25, 17, 15, 2, 2, 2, 2), "poor" = c(25, 17, 17, 17, 17, 15, 2))
+hts_ = list("rich" = c(40, 25, 22, 2, 2, 2, 2), "poor" = c(40, 25, 25, 25, 25, 22, 2))
 unqHts = sort(unique(hts_$rich))
 nUnqHt = length(unqHts)
 chunkSize = length(hts_$rich)
@@ -37,7 +37,7 @@ nChunkMax = ceiling(nTrialMax / chunkSize)
 
 tGridGap = 1
 # save 
-save("rwd", "iti", "conditions",
+save("rwd", "iti", "conditions", "highRwd", "lowRwd",
      "nCondition", "hts_", "unqHts", "chunkSize",
      "unqHts",
      "nUnqHt",
