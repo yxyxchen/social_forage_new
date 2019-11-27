@@ -38,7 +38,7 @@ for(sIdx in 1 : nSub){
   
   # create the rwd sequences in two conditions
   rwdSeq_ = lapply(1 : nCondition, function(i) {
-    tempt = replicate(ceiling(nTrialMax / 5), sample(c(rep(highRwd, 4), lowRwd), 5))
+    tempt = replicate(nChunkMax, sample(rwds, chunkSize))
     tempt = tempt[1 : nTrialMax]
   })
   beta = runif(1, 0.01, 0.03); betas[sIdx] = beta

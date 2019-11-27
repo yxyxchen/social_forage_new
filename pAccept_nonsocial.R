@@ -21,8 +21,10 @@ for(sIdx in 1 : nSub){
     tempt = as.vector(replicate(nChunkMax, sample(hts_[[condition]], chunkSize)))
     tempt[1 : nTrialMax]
   })
+  # create the rwd sequences in two conditions
   rwdSeq_ = lapply(1 : nCondition, function(i) {
-    tempt = replicate(nTrialMax, ifelse((rnorm(1) < 0 & rnorm(1) < 0), lowRwd, highRwd))
+    tempt = replicate(nChunkMax, sample(rwds, chunkSize))
+    tempt = tempt[1 : nTrialMax]
   })
   beta = runif(1, 0.005, 0.01)
   tau = runif(1, 5, 15)
