@@ -7,7 +7,7 @@ source("subFxs/plotThemes.R")
 
 # load expPara
 load("expParas.RData")
-blockSec = blockSec + 600
+blockSec = blockSec
 nTrialMax = blockSec / iti
 nChunkMax = ceiling(nTrialMax / chunkSize)
 
@@ -38,7 +38,7 @@ for(sIdx in 1 : nSub){
   
   # create the rwd sequences in two conditions
   rwdSeq_ = lapply(1 : nCondition, function(i) {
-    tempt = replicate(nChunkMax, sample(rwds, chunkSize))
+    tempt = replicate(ceiling(nChunkMax/2), sample(rwds, chunkSize*2))
     tempt = tempt[1 : nTrialMax]
   })
   beta = runif(1, 0.01, 0.03); betas[sIdx] = beta
@@ -74,7 +74,6 @@ plotData %>% gather(key = ht, value = pAccept, -time, -condition) %>%
 
 trialEarningsOnGrid = apply(trialEarningsOnGrid_[,totalEarnings > 70], MARGIN = 1, FUN = function(x) mean(x, na.rm = T))
 write.csv(trialEarningsOnGrid, file = "others.csv")
-
 data.frame(time = tGrid, trialEarnings = trialEarningsOnGrid) %>%
   ggplot(aes(time, trialEarnings)) + geom_line()
 

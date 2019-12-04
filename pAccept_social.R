@@ -26,7 +26,7 @@ for(sIdx in 1 : nSub){
   })
   # create the rwd sequences in two conditions
   rwdSeq_ = lapply(1 : nCondition, function(i) {
-    tempt = replicate(nChunkMax, sample(rwds, chunkSize))
+    tempt = replicate(ceiling(nChunkMax/2), sample(rwds, chunkSize * 2))
     tempt = tempt[1 : nTrialMax]
   })
   # simulate 
@@ -37,8 +37,6 @@ for(sIdx in 1 : nSub){
   RLResults_[[sIdx]] =  RLResults 
 }
 
-
-# concatenate 
 # concatenate 
 dfList = lapply(1 : nSub, function(i){
   RLResults = RLResults_[[i]]
@@ -68,14 +66,15 @@ dfList = lapply(1 : nSub, function(i){
     ht = RLResults$scheduledHt,
     condition = RLResults$condition,
     trialEarnings = RLResults$trialEarnings,
-    pastEarninings = pastEarnings1,
+    pastEarnings = pastEarnings1,
     action = action,
     preAction  = c(NA, head(action, -1)),
     pastRwdRate = pastEarnings1 / pastHt1,
     rewardUpdate = rewardUpdates,
     preSpentTime = preSpentTime,
     spentTime4LastRwd = spentTime4LastRwd,
-    blockTime =  cut(RLResults$blockTime, breaks = seq(0, blockSec, length.out = 4 + 1), labels = 1:4),
+    #blockTime =  cut(RLResults$blockTime, breaks = seq(0, blockSec, length.out = 4 + 1), labels = 1:4),
+    blockTime = RLResults$blockTime,
     preTrialEarningsOther = c(NA, head(RLResults$trialEarningsOther, -1))
   )
 })
@@ -97,7 +96,6 @@ data %>% mutate(ht = as.factor(ht)) %>% group_by(ht, subId, condition) %>% summa
   geom_errorbar(aes(ymin = min, ymax = max), position = position_dodge(0.9), width = 0.5) +
   xlab("Handling time (s)") + ylab("Acceptance (%)") + myTheme +
   scale_fill_manual(values = c("#9ecae1", "#ffeda0"))
-
 # I can also do a demean version of it if anyone wants 
 
 # fix a regression here. Definetly individual can be different in their effect to environments and the handling time
@@ -107,8 +105,7 @@ fit1 = glmer(action ~ ht + condition + (1 | subId), family = binomial,
              data)
 summary(fit1)
 
-# if we are doing regression on a single subjects, do a little bit grouping to smooth the data 
-# check whether we need ht as a number
+# if we are doing regression on a single subjects, use the firth logistic regression
 # remember to add the weights 
 fit1 = logistf(action ~ ht + condition, data[data$subId == 1, ])
 summary(fit1)
@@ -139,16 +136,16 @@ data %>% filter(subId == 1) %>%  mutate(ht = as.factor(ht)) %>%
 # the one without controlling for the individual differences 
 # in the simulation data, the individual differences are very small
 data %>% filter(data$preAction == 1) %>% 
-  group_by(pastEarninings, subId) %>% 
+  group_by(pastEarnings, subId) %>% 
   summarise(pAccept = mean(action)) %>%
-  group_by(pastEarninings) %>% 
+  group_by(pastEarnings) %>% 
   summarise(
     mu = mean(pAccept),
     se = sd(pAccept) / sqrt(nSub),
     min = mu - se,
     max = mu + se
   )%>%
-  ggplot(aes(as.factor(pastEarninings), mu)) +
+  ggplot(aes(as.factor(pastEarnings), mu)) +
   geom_bar(stat = "identity", fill = "#767676") +
   geom_errorbar(aes(ymin = min, ymax = max), width = 0.3 ) +
   myTheme + xlab("Previous reward") + ylab("Acceptance (%)")
@@ -156,25 +153,25 @@ data %>% filter(data$preAction == 1) %>%
 
 # we can run a mixed effect regression, only look at conditions 
   
-fit2 = glmer(action ~ pastEarninings + condition + ht + (1 | subId), data[data$preAction == 1,],
+fit2 = glmer(action ~ pastEarnings + condition + ht + (1 | subId), data[data$preAction == 1,],
              family = "binomial")
 summary(fit2)
 
 # in this case, we need to add ht and condition, since they are not perfectly balanced, since we
 # got quasi completely segment, we use firth logistic regression
-fit2 = logistf(action ~ pastEarninings + condition + ht, data[data$subId == 1 & data$preAction == 1,])
+fit2 = logistf(action ~ pastEarnings + condition + ht, data[data$subId == 1 & data$preAction == 1,])
 summary(fit2) # 
 
 # plot for single participant 
 data %>% dplyr::filter(subId == 1 & (data$preAction == 1)) %>% 
-  group_by(pastEarninings) %>%
+  group_by(pastEarnings) %>%
   summarise(mu = sum(action) / length(action),
             n = length(action),
             muAdj = (sum(action) + 0.5) / (n + 1),
             se = sqrt((1 - muAdj) * muAdj) / (n + 1),
             min = mu - se,
             max = mu + se) %>%
-  ggplot(aes(as.factor(pastEarninings), mu)) +
+  ggplot(aes(as.factor(pastEarnings), mu)) +
   geom_bar(stat = "identity", fill = "#767676") +
   geom_errorbar(aes(ymin = min, ymax = max), width = 0.3 ) +
   myTheme + xlab("Previous reward") + ylab("Acceptance (%)")
@@ -194,7 +191,7 @@ a = data %>% group_by(condition, preSpentTime, preTrialEarningsOther) %>%
 # the effect is not significantly in 33 and 36 in rich since the sample size is too small
 # we probably also need conditions, since the proportion of preSpent time therefor 
 # other earnings are not .... 
-data %>% filter(preSpentTime < 50) %>%
+data %>% filter((preSpentTime < 50) & (blockTime > 120)) %>%
   group_by(condition, preSpentTime, subId, preTrialEarningsOther) %>%
   summarise(pAccept = sum(action) / length(action)) %>% 
   group_by(preTrialEarningsOther, condition, preSpentTime) %>%
@@ -211,19 +208,6 @@ data %>% filter(preSpentTime < 50) %>%
 ggsave("figures/others_payment_13.png", width = 4, height = 3)
 
 
-## # check the balance of the Ht and trialEarnings 
-data %>% filter(preSpentTime < 50 & preSpentTime >= 33 & condition == "poor")  %>%
-  group_by(subId, preTrialEarningsOther, ht, trialEarnings) %>%
-  summarise(pAccept = sum(action) / length(action))  %>%
-  group_by(preTrialEarningsOther, ht, pastEarninings) %>%
-  summarise(mu = mean(pAccept),
-            n = length(pAccept),
-            se = sd(pAccept) / sqrt(length(pAccept)),
-            min = mu - se,
-            max = mu + se) %>% ggplot(aes(ht, n)) +
-  geom_bar(stat = "identity", fill = "#767676")  +
-  myTheme + ylab("Count") + facet_grid(pastEarninings~preTrialEarningsOther) +
-  xlab("Ht")
 
 ## probably regression is still the best way, just controlling everything. If it is well balanced
 ## and we assume no interactions, sometimes we don't meed to control it
@@ -231,7 +215,7 @@ data %>% filter(preSpentTime < 50 & preSpentTime >= 33 & condition == "poor")  %
 ## and maybe look at interactions more carefully. 
 # no need for grouping
 
-fit3 = glmer(action ~ condition + preSpentTime + preTrialEarningsOther + ht + pastEarninings + (1 | subId), family = "binomial", data)   
+fit3 = logistf(action ~ condition + preSpentTime + preTrialEarningsOther + ht + pastEarnings + (1 | subId), family = "binomial", data)   
 summary(fit3)
 
 # can we use for a single participant 
@@ -244,7 +228,7 @@ summary(fit3)
 # since there is definitly quite high convariance 
 # ht also change with condition a little bit ,but the convariance is not that high
 # there is some convariance so it might wash something away, and it is ok 
-fit3 = logistf(action ~  condition + ht + pastEarninings + preTrialEarningsOther + preSpentTime,
+fit3 = logistf(action ~  condition + ht + pastEarnings + preTrialEarningsOther + preSpentTime,
                data =  data[data$subId  == 1,]) 
 summary(fit3)
 

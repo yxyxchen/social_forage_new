@@ -27,7 +27,7 @@
 
 RLSocial = function(beta_self, beta_other, tau, iniLongRunRate, htSeq_, rwdSeq_, blockSec){
   load("others.RData")
-  singleTrialEarningsOnGrid = singleTrialEarningsOnGrid[c(601:1800, 2401:3600)]
+  #singleTrialEarningsOnGrid = singleTrialEarningsOnGrid[c(601:1800, 2401:3600)]
   tGrid = head(seq(0, blockSec * 2, by = tGridGap), -1)  # tgrid for the whole task
   nT = length(tGrid) 
 

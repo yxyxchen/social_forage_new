@@ -4,6 +4,7 @@ library("ggplot2")
 library("dplyr")
 library("tidyr")
 library("lme4")
+library("logistf")
 library(afex)
 source("subFxs/plotThemes.R")
 library("data.table")
@@ -60,7 +61,7 @@ dfList = lapply(1 : nSub, function(i){
   
   data = data.frame(
     subId = rep(i, length = length(action)),
-    ht = factor(RLResults$scheduledHt),
+    ht = RLResults$scheduledHt,
     condition = RLResults$condition,
     trialEarnings = RLResults$trialEarnings,
     pastEarninings = pastEarnings1,
@@ -81,11 +82,11 @@ data$rewardUpdateBin = cut(data$rewardUpdate,breaks = quantile(c(0, data$rewardU
 
 # plot the effect of reward sizes and environments 
 # make sure to average within each participant first. And use se across participants 
-data %>% group_by(ht, subId, condition) %>% summarise(pAccept = sum(action) / length(action)) %>%
+data %>% mutate(ht = as.factor(ht)) %>% group_by(ht, subId, condition) %>% summarise(pAccept = sum(action) / length(action)) %>%
   group_by(ht, condition) %>% summarise(mu = mean(pAccept),
-                             se = sd(pAccept) / sqrt(length(pAccept)),
-                             min = mu - se,
-                             max = mu + se) %>%  as.data.frame() %>%
+                                        se = sd(pAccept) / sqrt(length(pAccept)),
+                                        min = mu - se,
+                                        max = mu + se) %>%  as.data.frame() %>%
   mutate(ht = as.factor(ht)) %>%
   ggplot(aes(ht, mu, fill = condition)) +
   geom_bar(stat = "identity", position = 'dodge') +
@@ -102,17 +103,19 @@ regData = data %>% group_by(ht, subId, condition) %>% summarise(pAccept = sum(ac
 fit1 = lmer(pAccept ~ ht + condition + (1 | subId), regData)
 summary(fit1)
 
-
+# fit a single participant 
+fit1 = logistf(action ~ ht + condition, data[data$subId == 1, ])
+summary(fit1)
 
 # for a single participant 
 # use the adjusted se here, otherwise it can be 0 sometimes 
 data %>% filter(subId == 1) %>%  mutate(ht = as.factor(ht)) %>%
   group_by(ht, condition)%>% summarise(mu = sum(action) / length(action),
-              n = length(action),
-              muAdj = (sum(action) + 0.5) / (n + 1),
-              se = sqrt((1 - muAdj) * muAdj) / (n + 1),
-              min = mu - se,
-              max = mu + se) %>%  as.data.frame() %>% ggplot(aes(ht, mu, fill = condition)) +
+                                       n = length(action),
+                                       muAdj = (sum(action) + 0.5) / (n + 1),
+                                       se = sqrt((1 - muAdj) * muAdj) / (n + 1),
+                                       min = mu - se,
+                                       max = mu + se) %>%  as.data.frame() %>% ggplot(aes(ht, mu, fill = condition)) +
   geom_bar(stat = "identity", position = 'dodge') +
   geom_errorbar(aes(ymin = min, ymax = max), position = position_dodge(0.9), width = 0.5) +
   xlab("Handling time (s)") + ylab("Acceptance (%)") + myTheme +
@@ -140,25 +143,15 @@ data %>% filter(data$preAction == 1) %>%
   )%>%
   ggplot(aes(as.factor(pastEarninings), mu)) +
   geom_bar(stat = "identity", fill = "#767676") +
-  geom_errorbar(aes(ymin = min, ymax = max), width = 0.3 ) +
+  geom_errorbar(aes(ymin = min, ymax = max), width = 0.3) +
   myTheme + xlab("Previous reward") + ylab("Acceptance (%)")
+
 
 # we can run a mixed effect regression 
-regData = data %>% group_by(pastEarninings, subId) %>% summarise(pAccept = sum(action) / length(action)) 
-fit2 = lmer(pAccept ~ pastEarninings + (1 | subId), regData)
+fit2 = glmer(action ~ pastEarninings + condition + ht + (1 | subId), data[data$preAction == 1,],
+             family = "binomial")
 summary(fit2)
 
-# plot for single participant 
-data %>% dplyr::filter(subId == 1 & (data$preAction == 1)) %>% 
-  group_by(pastEarninings) %>%
-  summarise(mu = sum(action) / length(action),
-            n = length(action),
-            muAdj = (sum(action) + 0.5) / (n + 1),
-            se = sqrt((1 - muAdj) * muAdj) / (n + 1),
-            min = mu - se,
-            max = mu + se) %>%
-  ggplot(aes(as.factor(pastEarninings), mu)) +
-  geom_bar(stat = "identity", fill = "#767676") +
-  geom_errorbar(aes(ymin = min, ymax = max), width = 0.3 ) +
-  myTheme + xlab("Previous reward") + ylab("Acceptance (%)")
+fit2 = logistf(action ~ pastEarninings + condition + ht, data[data$subId == 1 & data$preAction == 1,])
+summary(fit2) # 
 
