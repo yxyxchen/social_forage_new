@@ -31,7 +31,7 @@ optimMaxAcpHt_
 rwd / unlist(optimLongRunRate_)
 
 # block constants 
-blockSec = 1200
+blockSec = 14 * 60
 nTrialMax = blockSec / iti
 nChunkMax = ceiling(nTrialMax / chunkSize)
 

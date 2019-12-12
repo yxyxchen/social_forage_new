@@ -1,3 +1,6 @@
+This script aimed to address what factors influence accept-or-reject choices in the social-info condition
+
+```{r, echo = F, message = F, warning =F, results = "hidden"}
 source("RL.R")
 source("RLSocial.R")
 library("ggplot2")
@@ -9,7 +12,7 @@ source("subFxs/plotThemes.R")
 library("data.table")
 # load expParas
 load("expParas.RData")
-load("others.RData")
+load("socialInfo/others.RData")
 
 # simulation
 set.seed(123)
@@ -58,12 +61,14 @@ dfList = lapply(1 : nSub, function(i){
 })
 data = bind_rows(dfList)
 data = data[apply(data, MARGIN = 1, FUN = function(x) all(!is.na(x))),]
+```
+Generally, both figures and regression analysis are good way to address our questions here. Figures demonstrate conclusions in a straight-forward way and are somehow flexbile (combined with across-participant normalization and conditioning). Regression analysis is more sophisticated since it can control more nuisance variables and treat inividual differneces as random effects. 
 
 
-# plot the effect of hts and environments 
-# generally our results look quit clearly, so we don't need to normalize our data across participants 
-# and plot our data separately for different conditions.
-# group level: make sure to average within each participant first. And use se across participants 
+### Handling Time and Environment
+we plotted acceptance percentages conditioned on handling time and environments, both on the group level and on the individual level. Generally, our results looked as expected.
+```{r, echo = F, message = F, warning =F, results = "hidden"}
+# group level 
 data %>% mutate(ht = as.factor(ht)) %>% group_by(ht, subId, condition) %>% summarise(pAccept = sum(action) / length(action)) %>%
   group_by(ht, condition) %>%
   summarise(mu = mean(pAccept),
@@ -76,7 +81,7 @@ data %>% mutate(ht = as.factor(ht)) %>% group_by(ht, subId, condition) %>% summa
   geom_bar(stat = "identity", position = 'dodge') +
   geom_errorbar(aes(ymin = min, ymax = max), position = position_dodge(0.9), width = 0.5) +
   xlab("Handling time (s)") + ylab("Acceptance (%)") + myTheme +
-  scale_fill_manual(values = c("#9ecae1", "#ffeda0"))
+  scale_fill_manual(values = c("#9ecae1", "#ffeda0")) + ggtitle("Group Data")
 # participant level, use adjusted S.E.s since S.E = 0 sometimes for binary data 
 data %>% filter(subId == 1) %>%  mutate(ht = as.factor(ht)) %>%
   group_by(ht, condition)%>% summarise(mu = sum(action) / length(action),
@@ -88,29 +93,24 @@ data %>% filter(subId == 1) %>%  mutate(ht = as.factor(ht)) %>%
   geom_bar(stat = "identity", position = 'dodge') +
   geom_errorbar(aes(ymin = min, ymax = max), position = position_dodge(0.9), width = 0.5) +
   xlab("Handling time (s)") + ylab("Acceptance (%)") + myTheme +
-  scale_fill_manual(values = c("#9ecae1", "#ffeda0"))
+  scale_fill_manual(values = c("#9ecae1", "#ffeda0")) + ggtitle("Example Participant")
+```
 
-# Examine the effect of hts and environments formally in logistic regression 
-# We don't control more nusiance factors since these two effects are quit robust.
-# Additionally, overall our experiments are well designed and counterbalanced 
-# For example, reward outcomes are counterbalanced for accepted trials. Also, even though
-# decision-related and sequence-related variables, like the actions, rewards and outcomes of previous trials,
-# could not be perfectly counterbalanced, we have quite a lot of data so they are nearly counterbalanced.
+We then examined the effect of handling time and environments formally in logistic regression. We don't control more nusiance factors since these two effects are quit robust. Additionally, overall our experiments are well designed and counterbalanced. For example, reward outcomes are counterbalanced for all accepted trials. Also, even though decision-related and sequence-related variables, like the actions, rewards and outcomes of previous trials, could not be perfectly counterbalanced, we have quite a lot of data so they are nearly counterbalanced.
+Since we have less data on the participant level and have quasi completely segment issues, we use logistf which adds priors to the logistic regression. 
+```{r}
 ## group level
 fit1 = glmer(action ~ ht + condition + (1 | subId), family = binomial,
              data)
 summary(fit1)
 ## participant level 
-## since we have less data on the participant level and have quasi completely segment issues, 
-## we use logistf which adds priors to the logistic regression
-we use logistf to h which adds a piror to the logistic regression. 
 fit1 = logistf(action ~ ht + condition, data[data$subId == 1, ])
 summary(fit1)
+```
 
-
-# the effect of rewards 
-# again, the effect looks quite clear here so we don't do any across-participant normalization 
-# and conditional plots. 
+### Reward
+we plotted acceptance percentages conditioned on rewards received on the previous trial. The figure on the group level looked as expected. However, for the example participant, we only observed the expected effect when we plotted separately for differnet handling time. 
+```{r}
 data %>% filter(data$preAction == 1) %>% 
   group_by(pastEarnings, subId) %>% 
   summarise(pAccept = mean(action)) %>%
@@ -124,9 +124,8 @@ data %>% filter(data$preAction == 1) %>%
   ggplot(aes(as.factor(pastEarnings), mu)) +
   geom_bar(stat = "identity", fill = "#767676") +
   geom_errorbar(aes(ymin = min, ymax = max), width = 0.3 ) +
-  myTheme + xlab("Previous reward") + ylab("Acceptance (%)")
+  myTheme + xlab("Previous reward") + ylab("Acceptance (%)") + ggtitle("Group Data")
 # participant level 
-# here we need to plot conditional figures.Compare the difference below
 data %>% dplyr::filter(subId == 1 & (data$preAction == 1)) %>% 
   group_by(pastEarnings) %>%
   summarise(mu = sum(action) / length(action),
@@ -138,7 +137,7 @@ data %>% dplyr::filter(subId == 1 & (data$preAction == 1)) %>%
   ggplot(aes(as.factor(pastEarnings), mu)) +
   geom_bar(stat = "identity", fill = "#767676") +
   geom_errorbar(aes(ymin = min, ymax = max), width = 0.3 ) +
-  myTheme + xlab("Previous reward") + ylab("Acceptance (%)") 
+  myTheme + xlab("Previous reward") + ylab("Acceptance (%)") + ggtitle("Example Participant, Pooled Data")
 data %>% dplyr::filter(subId == 1 & (data$preAction == 1)) %>% 
   group_by(pastEarnings, ht) %>%
   summarise(mu = sum(action) / length(action),
@@ -150,16 +149,26 @@ data %>% dplyr::filter(subId == 1 & (data$preAction == 1)) %>%
   ggplot(aes(as.factor(pastEarnings), mu)) +
   geom_bar(stat = "identity", fill = "#767676") +
   geom_errorbar(aes(ymin = min, ymax = max), width = 0.3 ) +
-  myTheme + xlab("Previous reward") + ylab("Acceptance (%)") + facet_grid(~ht)
+  myTheme + xlab("Previous reward") + ylab("Acceptance (%)") + facet_grid(~ht) +
+  ggtitle("Example Participant, Conditioned on Ht")
+```
 
-# examine the effect of rewards in regression
+We then examined the effect of rewards in logistic regressions. 
+Based on the observations described before, for the example participant, we only use data on trials where handling time = 28.
+
+```{r}
 fit2 = glmer(action ~ pastEarnings + condition + ht + (1 | subId), data[data$preAction == 1,],
              family = "binomial")
 summary(fit2)
 fit2 = logistf(action ~ pastEarnings + condition + ht, data[data$subId == 1 & data$preAction == 1,])
-summary(fit2) # 
+summary(fit2) 
+fit2 = logistf(action ~ pastEarnings, data = data[data$subId == 1 & data$preAction == 1 & data$ht == 28 & data$condition == "poor",])
+summary(fit2) 
+```
 
-# 
+
+
+```{r}
 data %>% filter((preSpentTime < 50) & (blockTime > 120)) %>%
   group_by(condition, preSpentTime, subId, preTrialEarningsOther) %>%
   summarise(pAccept = sum(action) / length(action)) %>% 
@@ -175,7 +184,7 @@ data %>% filter((preSpentTime < 50) & (blockTime > 120)) %>%
   myTheme + ylab("Acceptance (%)") + facet_grid(preSpentTime~condition) +
   xlab("Others'reward previously")
 ggsave("figures/others_payment_13.png", width = 4, height = 3)
-
+```
 
 
 ## probably regression is still the best way, just controlling everything. If it is well balanced
@@ -183,7 +192,7 @@ ggsave("figures/others_payment_13.png", width = 4, height = 3)
 ## if it is not significant, then probably do some grouping. like make continous measurement binary 
 ## and maybe look at interactions more carefully. 
 # no need for grouping
-
+```{r}
 fit3 = logistf(action ~ condition + preSpentTime + preTrialEarningsOther + ht + pastEarnings + (1 | subId), family = "binomial", data)   
 summary(fit3)
 
@@ -200,7 +209,4 @@ summary(fit3)
 fit3 = logistf(action ~  condition + ht + pastEarnings + preTrialEarningsOther + preSpentTime,
                data =  data[data$subId  == 1,]) 
 summary(fit3)
-
-
-
-
+```
