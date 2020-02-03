@@ -15,6 +15,9 @@ load("others.RData")
 set.seed(123)
 dir.create("figures")
 
+# read in data
+thisTrialData = read.table("data/101.csv", header = T)
+
 # simulate non_social data
 nSub = 16
 RLResults_ = list(length = nSub)
