@@ -15,8 +15,6 @@ load("others.RData")
 set.seed(123)
 dir.create("figures")
 
-# read in data
-thisTrialData = read.table("data/101.csv", header = T)
 
 # simulate non_social data
 nSub = 16
@@ -106,7 +104,7 @@ summary(fit1)
 ## participant level 
 ## since we have less data on the participant level and have quasi completely segment issues, 
 ## we use logistf which adds priors to the logistic regression
-we use logistf to h which adds a piror to the logistic regression. 
+## we use logistf to h which adds a piror to the logistic regression. 
 fit1 = logistf(action ~ ht + condition, data[data$subId == 1, ])
 summary(fit1)
 

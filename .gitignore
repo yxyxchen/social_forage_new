@@ -10,4 +10,4 @@ figures/
 *.DS_Store
 backup/
 *.mat
-
+data/
