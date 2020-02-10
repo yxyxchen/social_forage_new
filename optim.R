@@ -2,10 +2,10 @@ rwd = 2
 highRwd = 3
 lowRwd = 1
 
-iti = 11 # travel time 
+iti = 11 * 0.75 # travel time 
 conditions = c("rich", "poor")
 nCondition = length(conditions)
-hts_ = list("rich" = c(40, 28, 22, 2, 2, 2, 2), "poor" = c(40, 28, 28, 28, 28, 22, 2))
+hts_ = list("rich" = c(40, 28, 22, 2.7, 2.7, 2.7, 2.7) * 0.75 , "poor" = c(40, 28, 28, 28, 28, 22, 2.7) * 0.75)
 rwds = c(rep(highRwd, chunkSize), rep(lowRwd, chunkSize))
 unqHts = sort(unique(hts_$rich))
 nUnqHt = length(unqHts)
