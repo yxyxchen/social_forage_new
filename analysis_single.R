@@ -49,7 +49,8 @@ ggsave("figures/analysis/reward.png", width = 6, height = 3)
 thisTrialData$action = thisTrialData$trialEarnings > 0
 thisTrialData$timeSpent = ifelse(thisTrialData$action, thisTrialData$scheduledHt + iti, 0 + iti)
 thisTrialData$preTimeSpent = c(NA, head(thisTrialData$timeSpent, -1))
-fit = logistf(action ~ condition + preTimeSpent + scheduledHt + preTrialEarnings, family = "binomial", thisTrialData)   
+fitData = thisTrialData[thisTrialData$scheduledHt == 22 | thisTrialData$scheduledHt == 28,]
+fit = logistf(action ~ condition + preTimeSpent + scheduledHt + preTrialEarnings, family = "binomial",fitData)   
 summary(fit)
 
 # check the effect of learning
@@ -79,9 +80,8 @@ for(i in 1 : nT){
 df = data.frame(cbind(t(thisAcceptMatrixOnGrid), tGrid)) 
 names(df) = c(paste0("ht", unqHts), "time")
 df %>% gather(key = "ht", value = "mu", -time) %>%
-  ggplot(aes(time, mu)) + geom_point() + geom_vline(xintercept = blockSec) +
+  ggplot(aes(time, mu)) + geom_line(size = 1) + geom_vline(xintercept = blockSec, color = "grey") +
   facet_grid(~ht) + xlab("Time (min)") + ylab("Accept %")  + myTheme +
   scale_x_continuous(breaks = c(0, 1200, 2400), labels = c(0, 20, 40))
 ggsave("figures/analysis/learningCurve.png", width = 6, height = 3)
 
-# is there an effect on the reaction time 

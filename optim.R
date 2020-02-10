@@ -10,7 +10,7 @@ rwds = c(rep(highRwd, chunkSize), rep(lowRwd, chunkSize))
 unqHts = sort(unique(hts_$rich))
 nUnqHt = length(unqHts)
 chunkSize = length(hts_$rich)
-nHt = length(hts_['rich'])
+nHt = length(hts_[['rich']])
 
 # calculate the optimal longRunRate 
 # accpet hts <= threshold
