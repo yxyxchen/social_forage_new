@@ -45,3 +45,6 @@ fit = glmer(pAcceptAdj ~ condition + preTimeSpent + scheduledHt + preTrialEarnin
 summary(fit)
 
 ########################## 
+fitData = data %>% filter(id != "204" & condition == "poor" & preTrialEarnings > 0)
+fit = lmer(responseRT ~  preTimeSpent + action + factor(scheduledHt) + preTrialEarnings + (1 | id),fitData)   
+summary(fit)

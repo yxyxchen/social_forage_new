@@ -5,6 +5,7 @@ library("dplyr")
 library("tidyr")
 library("logistf")
 library("lme4")
+library("lmerTest")
 source("subFxs/plotThemes.R")
 library("data.table")
 # load expParas
@@ -16,7 +17,7 @@ dir.create("figures")
 dir.create("figures/analysis")
 
 # read in data
-thisTrialData = read.csv("data/204.csv", header = T)
+thisTrialData = read.csv("data/202.csv", header = T)
 thisTrialData$condition = factor(ifelse(thisTrialData$blockIdx == 1, "rich", "poor"), levels = c("rich", "poor"))
 
 # plot the effect of the environment and the ht
@@ -84,4 +85,19 @@ df %>% gather(key = "ht", value = "mu", -time) %>%
   facet_grid(~ht) + xlab("Time (min)") + ylab("Accept %")  + myTheme +
   scale_x_continuous(breaks = c(0, 1200, 2400), labels = c(0, 20, 40))
 ggsave("figures/analysis/learningCurve.png", width = 6, height = 3)
+
+
+# calculate the reaction time 
+thisTrialData %>% mutate(ht = as.factor(scheduledHt)) %>% 
+  filter(!is.na(preTimeSpent) & condition == "poor" & preTrialEarnings > 0) %>%
+  group_by(ht, preTrialEarnings) %>%
+  dplyr::summarise(mu = mean(responseRT)) %>% 
+  ggplot(aes(preTrialEarnings, mu, fill = ht)) + 
+  geom_bar(stat = "identity", position = 'dodge') +
+  xlab("Previous payoff") + ylab("Acceptance (%)") + myTheme +
+  facet_grid(~ht)
+
+fitData = thisTrialData[thisTrialData$condition == "rich", ]
+fit = lm(responseRT ~ preTimeSpent + preTrialEarnings + factor(scheduledHt) + action, fitData)   
+summary(fit)
 
