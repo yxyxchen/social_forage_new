@@ -1,27 +1,47 @@
-ids = c("101", "102", "103", "104")
+source("RL.R")
+source("RLSocial.R")
+library("ggplot2")
+library("plyr")
+library("dplyr")
+library("tidyr")
+library("logistf")
+library("lme4")
+source("subFxs/plotThemes.R")
+library("data.table")
+source("subFxs/loadFxs.R")
 
-data = read.table(sprintf("data/101.csv", id), header = T)
-data$id = "101"
-for(i in 2:4){
-  id = ids[i]
-  thisTrialData = read.csv(sprintf("data/%s.csv", id), header = T)
-  thisTrialData = thisTrialData[,1:9]
-  thisTrialData$id = id
-  data = rbind(data, thisTrialData)
-}
+# load para
+load("expParas.RData")
+
+################## load data #################
+allData = loadAllData()
+ids = allData[['ids']]
+trialData = allData$'trialData'
+data = ldply(trialData, rbind)
 
 
-fitData = data %>% filter(scheduledHt == 22 | scheduledHt == 28) 
-fitData$condition = ifelse(fitData$blockIdx == 1, "rich", "poor")
-fitData$preTrialEarnings = c(NA, head(fitData$trialEarnings, -1))
-fitData$action = fitData$trialEarnings > 0
-fitData$timeSpent = ifelse(fitData$action, fitData$scheduledHt + iti, 0 + iti)
-fitData$preTimeSpent = c(NA, head(fitData$timeSpent, -1))
+################# variable effects ###############
+# without a prior yet with random effects
+data$condition = ifelse(data$blockIdx == 1, "rich", "poor")
+data$preTrialEarnings = c(NA, head(data$trialEarnings, -1))
+data$action = data$trialEarnings > 0
+data$timeSpent = ifelse(data$action, data$scheduledHt + iti, 0 + iti)
+data$preTimeSpent = c(NA, head(data$timeSpent, -1))
+fitData = data %>% filter(id != "204" & scheduledHt > min(unqHts) & scheduledHt < max(unqHts))
 fit = glmer(action ~ condition + preTimeSpent + scheduledHt + preTrialEarnings + (1 | id), family = "binomial",fitData)   
 summary(fit)
 
-
+# with a prior yet without random effects 
 fit = logistf(action ~ condition + preTimeSpent + scheduledHt + preTrialEarnings, family = "binomial",fitData)   
 summary(fit)
 
+# with a prior and random effects 
+fitDataShort = fitData %>% group_by(id, condition, preTimeSpent, scheduledHt, preTrialEarnings) %>%
+  dplyr::summarise(pAccept = mean(action),
+            n = length(action),
+            pAcceptAdj = (sum(action) + 0.5) / (length(action) + 1),
+            nAdj = length(action) +1)
+fit = glmer(pAcceptAdj ~ condition + preTimeSpent + scheduledHt + preTrialEarnings + (1 | id), family = "binomial",fitDataShort, weights = nAdj)   
+summary(fit)
 
+########################## 

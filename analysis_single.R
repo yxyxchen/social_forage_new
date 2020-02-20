@@ -16,12 +16,12 @@ dir.create("figures")
 dir.create("figures/analysis")
 
 # read in data
-thisTrialData = read.csv("data/102.csv", header = T)
+thisTrialData = read.csv("data/204.csv", header = T)
 thisTrialData$condition = factor(ifelse(thisTrialData$blockIdx == 1, "rich", "poor"), levels = c("rich", "poor"))
 
 # plot the effect of the environment and the ht
 thisTrialData %>% mutate(ht = as.factor(scheduledHt)) %>% group_by(condition, ht) %>%
-  summarise(mu = sum(trialEarnings > 0) / length(trialEarnings)) %>% 
+  dplyr::summarise(mu = sum(trialEarnings > 0) / length(trialEarnings)) %>% 
   ggplot(aes(ht, mu, fill = condition)) +
   geom_bar(stat = "identity", position = 'dodge') +
   xlab("Handling time (s)") + ylab("Acceptance (%)") + myTheme +
@@ -32,7 +32,7 @@ ggsave("figures/analysis/htEnv.png", width = 4, height = 3)
 thisTrialData$preTrialEarnings = c(NA, head(thisTrialData$trialEarnings, -1))
 thisTrialData %>% filter(thisTrialData$preTrialEarnings > 0) %>%
   mutate(ht = as.factor(scheduledHt)) %>% group_by(condition, ht, preTrialEarnings) %>%
-  summarise(mu = sum(trialEarnings > 0) / length(trialEarnings),
+  dplyr::summarise(mu = sum(trialEarnings > 0) / length(trialEarnings),
             n = length(trialEarnings),
             muAdj =  (sum(trialEarnings > 0) + 0.5) / (n + 1),
             se =  sqrt((1 - muAdj) * muAdj) / (n + 1),
@@ -46,10 +46,10 @@ thisTrialData %>% filter(thisTrialData$preTrialEarnings > 0) %>%
 ggsave("figures/analysis/reward.png", width = 6, height = 3)
 
 # fit a model 
-thisTrialData$action = thisTrialData$trialEarnings > 0
+thisTrialData$action = ifelse(thisTrialData$trialEarnings > 0, 1, 0)
 thisTrialData$timeSpent = ifelse(thisTrialData$action, thisTrialData$scheduledHt + iti, 0 + iti)
 thisTrialData$preTimeSpent = c(NA, head(thisTrialData$timeSpent, -1))
-fitData = thisTrialData[thisTrialData$scheduledHt == 22 | thisTrialData$scheduledHt == 28,]
+fitData = thisTrialData[thisTrialData$scheduledHt == 22 * 0.7 | thisTrialData$scheduledHt == 28 * 0.7,]
 fit = logistf(action ~ condition + preTimeSpent + scheduledHt + preTrialEarnings, family = "binomial",fitData)   
 summary(fit)
 
