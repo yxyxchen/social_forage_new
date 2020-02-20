@@ -2,10 +2,10 @@ rwd = 2
 highRwd = 3
 lowRwd = 1
 
-iti = 11 * 0.75 # travel time 
+iti = 11 * 0.70 # travel time 
 conditions = c("rich", "poor")
 nCondition = length(conditions)
-hts_ = list("rich" = c(40, 28, 22, 2.7, 2.7, 2.7, 2.7) * 0.70 , "poor" = c(40, 28, 28, 28, 28, 22, 2.7) * 0.70)
+hts_ = list("rich" = c(40, 28, 22, 2.75, 2.75, 2.75, 2.75) * 0.70 , "poor" = c(40, 28, 28, 28, 28, 22, 2.75) * 0.70)
 rwds = c(rep(highRwd, chunkSize), rep(lowRwd, chunkSize))
 unqHts = sort(unique(hts_$rich))
 nUnqHt = length(unqHts)
@@ -26,10 +26,14 @@ for(i in 1 : nCondition){
                           totalReward / totalTime
                         })
   optimLongRunRate_[[condition]] = max(longRunRates)
-  optimMaxAcpHt_[[condition]] = max(unqHts[rwd / unqHts >= optimLongRunRate_[[condition]]])
+  optimMaxAcpHt_[[condition]] = max(unqHts[rwd / unqHts > optimLongRunRate_[[condition]]])
 }
 optimMaxAcpHt_
 rwd / unlist(optimLongRunRate_)
+
+# calculate net rewards
+(highRwd + lowRwd) / 2 - unqHts *  optimLongRunRate_$rich
+(highRwd + lowRwd) / 2 - unqHts *  optimLongRunRate_$poor
 
 # block constants 
 blockSec = 20 * 60

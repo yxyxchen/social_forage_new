@@ -17,20 +17,31 @@ dir.create("figures")
 dir.create("figures/analysis")
 
 # read in data
-thisTrialData = read.csv("data/202.csv", header = T)
+thisTrialData = read.csv("data/205.csv", header = T)
 thisTrialData$condition = factor(ifelse(thisTrialData$blockIdx == 1, "rich", "poor"), levels = c("rich", "poor"))
+thisTrialData$ht = as.factor(thisTrialData$scheduledHt)
+thisTrialData$preTrialEarnings = c(NA, head(thisTrialData$trialEarnings, -1))
+thisTrialData$taskTime = thisTrialData$blockTime 
+thisTrialData$taskTime[thisTrialData$blockIdx == 2] = thisTrialData$taskTime[thisTrialData$blockIdx == 2] + blockSec
+thisTrialData$chunkIdx = ceiling(thisTrialData$trialIdx / nHt)
+thisTrialData$chunkIdx[thisTrialData$blockIdx == 2] = with(thisTrialData, chunkIdx[blockIdx == 2] + max(chunkIdx[blockIdx == 1]))
+thisTrialData$action = ifelse(thisTrialData$trialEarnings >0, 1, 0)
 
 # plot the effect of the environment and the ht
-thisTrialData %>% mutate(ht = as.factor(scheduledHt)) %>% group_by(condition, ht) %>%
-  dplyr::summarise(mu = sum(trialEarnings > 0) / length(trialEarnings)) %>% 
-  ggplot(aes(ht, mu, fill = condition)) +
+# use adjusted pAccept and se 
+thisTrialData %>% group_by(condition, ht) %>%
+  dplyr::summarise(mu = sum(trialEarnings > 0) / length(trialEarnings),
+                   n = length(action),
+                   muAdj = (sum(action) + 0.5) / (length(action) + 1),
+                   seAdj =  sqrt((1 - muAdj) * muAdj) / (length(action) + 1)) %>% 
+  ggplot(aes(ht, muAdj, fill = condition)) +
   geom_bar(stat = "identity", position = 'dodge') +
   xlab("Handling time (s)") + ylab("Acceptance (%)") + myTheme +
-  scale_fill_manual(values = c("#9ecae1", "#ffeda0"))
+  scale_fill_manual(values = c("#9ecae1", "#ffeda0")) + 
+  geom_errorbar(aes(x = ht, ymin = muAdj - seAdj, ymax = muAdj + seAdj),  position=position_dodge(width=1))
 ggsave("figures/analysis/htEnv.png", width = 4, height = 3)
 
 # the effect of the reward
-thisTrialData$preTrialEarnings = c(NA, head(thisTrialData$trialEarnings, -1))
 thisTrialData %>% filter(thisTrialData$preTrialEarnings > 0) %>%
   mutate(ht = as.factor(scheduledHt)) %>% group_by(condition, ht, preTrialEarnings) %>%
   dplyr::summarise(mu = sum(trialEarnings > 0) / length(trialEarnings),
@@ -55,10 +66,6 @@ fit = logistf(action ~ condition + preTimeSpent + scheduledHt + preTrialEarnings
 summary(fit)
 
 # check the effect of learning
-thisTrialData$taskTime = thisTrialData$blockTime 
-thisTrialData$taskTime[thisTrialData$blockIdx == 2] = thisTrialData$taskTime[thisTrialData$blockIdx == 2] + blockSec
-thisTrialData$chunkIdx = ceiling(thisTrialData$trialIdx / nHt)
-thisTrialData$chunkIdx[thisTrialData$blockIdx == 2] = with(thisTrialData, chunkIdx[blockIdx == 2] + max(chunkIdx[blockIdx == 1]))
 tGrid = head(seq(0, blockSec * 2, by = 5), -1)  
 nT = length(tGrid) 
 thisAcceptMatrixOnGrid = matrix(NA, nrow = nUnqHt, ncol = nT)
@@ -78,6 +85,7 @@ for(i in 1 : nT){
   }
 }
 
+######################## reaction time analysis #######################
 df = data.frame(cbind(t(thisAcceptMatrixOnGrid), tGrid)) 
 names(df) = c(paste0("ht", unqHts), "time")
 df %>% gather(key = "ht", value = "mu", -time) %>%
@@ -88,16 +96,35 @@ ggsave("figures/analysis/learningCurve.png", width = 6, height = 3)
 
 
 # calculate the reaction time 
-thisTrialData %>% mutate(ht = as.factor(scheduledHt)) %>% 
-  filter(!is.na(preTimeSpent) & condition == "poor" & preTrialEarnings > 0) %>%
-  group_by(ht, preTrialEarnings) %>%
+# error bars and outliers 
+thisTrialData  %>%
+  group_by(ht, condition) %>%
   dplyr::summarise(mu = mean(responseRT)) %>% 
-  ggplot(aes(preTrialEarnings, mu, fill = ht)) + 
+  ggplot(aes(ht, mu, fill = condition)) + 
   geom_bar(stat = "identity", position = 'dodge') +
-  xlab("Previous payoff") + ylab("Acceptance (%)") + myTheme +
-  facet_grid(~ht)
+  xlab("Ht (s)") + ylab("RT (s)") + myTheme 
 
-fitData = thisTrialData[thisTrialData$condition == "rich", ]
-fit = lm(responseRT ~ preTimeSpent + preTrialEarnings + factor(scheduledHt) + action, fitData)   
-summary(fit)
+
+thisTrialData  %>% 
+  ggplot(aes(ht, responseRT)) + 
+  geom_boxplot() +
+  xlab("RT (s)") + ylab("Count") + myTheme +
+  facet_grid( ~ condition)
+
+
+thisTrialData  %>% 
+  ggplot(aes(responseRT, color = factor(action))) + 
+  geom_density() +
+  xlab("RT (s)") + ylab("Count") + myTheme +
+  facet_grid(ht ~ condition)
+
+selectData = thisTrialData[thisTrialData$condition == "poor" & thisTrialData$scheduledHt == unqHts[3],]
+t.test(selectData$responseRT[selectData$action == 0],
+            selectData$responseRT[selectData$action == 1])
+
+# check the effect of taskTime
+thisTrialData %>% 
+  ggplot(aes(taskTime, responseRT)) +
+  geom_line() + facet_grid(~ ht) +
+  geom_vline(xintercept = blockSec, color = "grey") 
 
