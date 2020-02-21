@@ -32,8 +32,10 @@ optimMaxAcpHt_
 rwd / unlist(optimLongRunRate_)
 
 # calculate net rewards
-(highRwd + lowRwd) / 2 - unqHts *  optimLongRunRate_$rich
-(highRwd + lowRwd) / 2 - unqHts *  optimLongRunRate_$poor
+netValuesRich = (highRwd + lowRwd) / 2 - unqHts *  optimLongRunRate_$rich
+netValuesPoor = (highRwd + lowRwd) / 2 - unqHts *  optimLongRunRate_$poor
+
+plot(1 / abs(c(netValuesRich, netValuesPoor)))
 
 # block constants 
 blockSec = 20 * 60
@@ -52,6 +54,9 @@ save("rwd", "iti", "conditions", "highRwd", "lowRwd",
      "blockSec",
      "nTrialMax", "nChunkMax",
      "tGridGap",
+     "nHt",
+     "netValuesRich",
+     "netValuesPoor",
      file = "expParas.RData")
 
 optimMaxAcpHt_

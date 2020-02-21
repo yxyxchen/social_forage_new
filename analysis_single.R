@@ -17,7 +17,7 @@ dir.create("figures")
 dir.create("figures/analysis")
 
 # read in data
-thisTrialData = read.csv("data/205.csv", header = T)
+thisTrialData = read.csv("data/201.csv", header = T)
 thisTrialData$condition = factor(ifelse(thisTrialData$blockIdx == 1, "rich", "poor"), levels = c("rich", "poor"))
 thisTrialData$ht = as.factor(thisTrialData$scheduledHt)
 thisTrialData$preTrialEarnings = c(NA, head(thisTrialData$trialEarnings, -1))
@@ -124,7 +124,6 @@ t.test(selectData$responseRT[selectData$action == 0],
 
 # check the effect of taskTime
 thisTrialData %>% 
-  ggplot(aes(taskTime, responseRT)) +
-  geom_line() + facet_grid(~ ht) +
-  geom_vline(xintercept = blockSec, color = "grey") 
+  ggplot(aes(chunkIdx, responseRT)) +
+  geom_line() + facet_grid(~ ht)
 
