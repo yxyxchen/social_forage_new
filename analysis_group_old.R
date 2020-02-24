@@ -15,7 +15,7 @@ source("subFxs/loadFxs.R")
 load("expParas.RData")
 
 ################## load data #################
-allData = loadAllData()
+allData = loadAllDataOld()
 ids = allData[['ids']]
 trialData = allData$'trialData'
 data = ldply(trialData, rbind, .id = NULL)
@@ -26,9 +26,7 @@ nSub = length(ids)
 data$condition = ifelse(data$blockIdx == 1, "rich", "poor")
 data$responseTaskTime = data$responseBlockTime
 data$responseTaskTime[data$blockIdx == 2] = data$responseTaskTime[data$blockIdx == 2] + blockSec
-data$preTrialEarnings = c(NA, head(data$trialEarnings, -1))
-data$preTrialEarnings2 = c(NA, NA, head(data$trialEarnings, -2))
-data$preTimeSpent2 = c(NA,  NA, head(data$trialEarnings, -2))
+data$preTrialEarnings = c(NA, head(data$trialEarnings, -1)) # oo I am wrong
 data$action = data$trialEarnings > 0
 data$timeSpent = ifelse(data$action, data$scheduledHt + iti, 0 + iti)
 data$preTimeSpent = c(NA, head(data$timeSpent, -1))
@@ -49,17 +47,30 @@ data %>% group_by(ht, condition, id) %>% summarise(pAccept = mean(action)) %>%
   ggplot(aes(ht, mu, fill = condition)) +
   geom_bar(stat = "identity", position = "dodge") +
   scale_fill_manual(values = c("#9ecae1", "#ffeda0")) +
-  geom_errorbar(aes(x = ht, ymin = mu - se, ymax = mu + se), position = position_dodge(0.9), width = 0.5) 
-  
-  
+  geom_errorbar(aes(x = ht, ymin = mu - se, ymax = mu + se), position = position_dodge(0.9), width = 0.5) +
+  myTheme + xlab("Handling time (s)") + ylab("Acceptance (%)")
+ggsave("figures/pAccept_group_old.png", width = 5, height = 5)
 
-# 204 maynot meet the requirement 
-fitData = data %>% filter(trialIdx > 2 & scheduledHt > 2 & scheduledHt < 20 & preTrialEarnings > 0 
-                          & id != "201")
-fit = glm(action ~ condition + factor(scheduledHt) + factor(preTimeSpent) + preTrialEarnings, family = "binomial",fitData)   
+
+data$actionAdj =
+  unlist(data %>%
+  group_by(id) %>%
+  group_map(~ .x$action - mean(.x$action, na.rm = T) + mean(data$action)))
+
+sumData = data %>% group_by(id, condition, scheduledHt) %>%
+  summarise(pAccept = mean(actionAdj), n = length(action))
+
+# effects of environments and handling time
+fit = glmer(action ~ condition +  scheduledHt + (1 | id), data, family = "binomial")
 summary(fit)
 
-# 
+
+# effects of preTrialEarnings
+fitData = data %>% filter(trialIdx > 4 & scheduledHt > 2 & scheduledHt < 40 & preTrialEarnings > 0)
+fit = glm(action ~ condition + scheduledHt + preTimeSpent + preTimeSpent2 + preTimeSpent3 + preTimeSpent4 + preTrialEarnings, family = "binomial",fitData)   
+summary(fit)
+
+# the effect 
 fit = glm(action ~ condition + scheduledHt + preTimeSpent + preTrialEarnings, family = "binomial",fitData)   
 summary(fit)
 
