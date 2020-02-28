@@ -9,7 +9,7 @@ library("lmerTest")
 source("subFxs/plotThemes.R")
 library("data.table")
 # load expParas
-load("expParas.RData")
+load("expParasOld.RData")
 
 # simulation
 set.seed(123)
@@ -17,7 +17,7 @@ dir.create("figures")
 dir.create("figures/analysis")
 
 # read in data
-thisTrialData = read.csv("data/205.csv", header = T)
+thisTrialData = read.csv("data/103.csv", header = T)
 thisTrialData$condition = factor(ifelse(thisTrialData$blockIdx == 1, "rich", "poor"), levels = c("rich", "poor"))
 thisTrialData$ht = as.factor(thisTrialData$scheduledHt)
 thisTrialData$taskTime = thisTrialData$blockTime 
@@ -31,22 +31,23 @@ thisTrialData$timeSpentLag1 = unlist(thisTrialData %>% group_by(condition) %>% g
   
 # plot the effect of the environment and the ht
 # use adjusted pAccept and se 
-thisTrialData %>% filter(!is.na(action)) %>% group_by(condition, ht) %>%
-  dplyr::summarise(mu = sum(action) / length(action),
-                   se = sqrt(mu * (1 -mu)) / sqrt(length(action)),
-                   n = length(action)) %>% 
-  ggplot(aes(ht, mu, fill = condition)) +
+thisTrialData %>% group_by(condition, ht) %>%
+  dplyr::summarise(mu = sum(trialEarnings > 0) / length(trialEarnings),
+                   n = length(action),
+                   muAdj = (sum(action) + 0.5) / (length(action) + 1),
+                   seAdj =  sqrt((1 - muAdj) * muAdj) / (length(action) + 1)) %>% 
+  ggplot(aes(ht, muAdj, fill = condition)) +
   geom_bar(stat = "identity", position = 'dodge') +
   xlab("Handling time (s)") + ylab("Acceptance (%)") + myTheme +
   scale_fill_manual(values = c("#9ecae1", "#ffeda0")) + 
-  geom_errorbar(aes(x = ht, ymin = mu - se, ymax = mu + se),  position=position_dodge(width=1))
-
+  geom_errorbar(aes(x = ht, ymin = muAdj - seAdj, ymax = muAdj + seAdj),  position=position_dodge(width=1))
 
 # the effect of the previous trial
-thisTrialData %>%  filter(trialIdx > 1 & trialEarningsLag1 > 0 & condition == "poor" & !is.na(action)) %>%
+# I think when we only have few samples it is better to use not adjusted percentages
+thisTrialData %>%  filter(trialIdx > 1 & trialEarningsLag1 > 0 & condition == "poor") %>%
   mutate(trialEarningsLag1 = as.factor(trialEarningsLag1), timeSpentLag1 = as.factor(timeSpentLag1)) %>%
   group_by(trialEarningsLag1, ht, timeSpentLag1) %>%
-  summarise(mu = mean(action),
+  summarise(mu = sum(action, na.rm = T) / sum(!is.na(action)),
             muAdj = (sum(action, na.rm = T) + 0.5) / (sum(!is.na(action))+1),
             se = sqrt((1 - mu) * mu) /sum(!is.na(action)),
             seAdj = sqrt((1 - muAdj) * muAdj) /(sum(!is.na(action))+1),

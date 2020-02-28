@@ -12,7 +12,7 @@ library("data.table")
 source("subFxs/loadFxs.R")
 
 # load para
-load("expParas.RData")
+load("expParasOld.RData")
 
 ################## load data #################
 allData = loadAllDataOld()
@@ -25,55 +25,61 @@ nSub = length(ids)
 # without a prior yet with random effects
 data$condition = ifelse(data$blockIdx == 1, "rich", "poor")
 data$responseTaskTime = data$responseBlockTime
+data$action = ifelse(data$trialEarnings == -2, NA, ifelse(data$trialEarnings == 0, 0, 1))
 data$responseTaskTime[data$blockIdx == 2] = data$responseTaskTime[data$blockIdx == 2] + blockSec
-data$preTrialEarnings = c(NA, head(data$trialEarnings, -1)) # oo I am wrong
-data$action = data$trialEarnings > 0
+data$trialEarningsLag1 = unlist(data %>% group_by(id, blockIdx) %>% group_map(~c(NA, head(.x$trialEarnings, -1))))
+data$trialEarningsLag2 = unlist(data %>% group_by(id, blockIdx) %>% group_map(~c(NA, NA, head(.x$trialEarnings, -2))))
+data$trialEarningsLag3 = unlist(data %>% group_by(id, blockIdx) %>% group_map(~c(NA, NA, NA, head(.x$trialEarnings, -3))))
 data$timeSpent = ifelse(data$action, data$scheduledHt + iti, 0 + iti)
-data$preTimeSpent = c(NA, head(data$timeSpent, -1))
+data$timeSpentLag1 = unlist(data %>% group_by(id, blockIdx) %>% group_map(~c(NA, head(.x$timeSpent, -1))))
+data$timeSpentLag2 = unlist(data %>% group_by(id, blockIdx) %>% group_map(~c(NA, NA, head(.x$timeSpent, -2))))
+data$timeSpentLag3 = unlist(data %>% group_by(id, blockIdx) %>% group_map(~c(NA, NA, NA, head(.x$timeSpent, -3))))
 data$ht = as.factor(data$scheduledHt)
 data$chunkIdx = ceiling(data$trialIdx / nHt)
 data$cumEarnings = unlist(data %>%
-  group_by(id) %>%
-  group_map(~ cumsum(.x$trialEarnings )))
-data$preTiralUpdate = data$preTrialEarnings -
-  data$preTimeSpent * ifelse(data$condition == "rich", optimLongRunRate_[['rich']], optimLongRunRate_[['poor']])
-data$preTrialUpdate2 =  data$preTrialEarnings2 -
-  data$preTimeSpent2 * ifelse(data$condition == "rich", optimLongRunRate_[['rich']], optimLongRunRate_[['poor']])
+                            group_by(id) %>%
+                            group_map(~ cumsum(.x$trialEarnings )))
+
 #################### pAccept #################
 # use between-participant se
-data %>% group_by(ht, condition, id) %>% summarise(pAccept = mean(action)) %>%
+data %>% group_by(ht, condition, id) %>% summarise(pAccept = mean(action, na.rm = T)) %>%
   group_by(ht, condition) %>% 
-  summarise(mu = mean(pAccept), se = sd(pAccept) / sqrt(length(pAccept) - 1)) %>%
+  summarise(mu = mean(pAccept), se = sd(pAccept) / sqrt(sum(!is.na(pAccept)) - 1)) %>%
   ggplot(aes(ht, mu, fill = condition)) +
   geom_bar(stat = "identity", position = "dodge") +
   scale_fill_manual(values = c("#9ecae1", "#ffeda0")) +
   geom_errorbar(aes(x = ht, ymin = mu - se, ymax = mu + se), position = position_dodge(0.9), width = 0.5) +
   myTheme + xlab("Handling time (s)") + ylab("Acceptance (%)")
 ggsave("figures/pAccept_group_old.png", width = 5, height = 5)
-
-
-data$actionAdj =
-  unlist(data %>%
-  group_by(id) %>%
-  group_map(~ .x$action - mean(.x$action, na.rm = T) + mean(data$action)))
-
-sumData = data %>% group_by(id, condition, scheduledHt) %>%
-  summarise(pAccept = mean(actionAdj), n = length(action))
-
 # effects of environments and handling time
 fit = glmer(action ~ condition +  scheduledHt + (1 | id), data, family = "binomial")
 summary(fit)
 
 
-# effects of preTrialEarnings
-fitData = data %>% filter(trialIdx > 4 & scheduledHt > 2 & scheduledHt < 40 & preTrialEarnings > 0)
-fit = glm(action ~ condition + scheduledHt + preTimeSpent + preTimeSpent2 + preTimeSpent3 + preTimeSpent4 + preTrialEarnings, family = "binomial",fitData)   
-summary(fit)
+# detect the effect of previous spent time
+data %>%  filter(trialIdx > 1 & trialEarningsLag1 > 0) %>%
+  mutate(timeSpentLag1  = as.factor(timeSpentLag1)) %>%
+  group_by(id, timeSpentLag1, condition, ht) %>% summarise(pAccept = mean(action, na.rm = T)) %>%
+  group_by(timeSpentLag1, condition, ht) %>% summarise(mu = mean(pAccept), se = sd(pAccept) / sqrt(sum(!is.na(pAccept)) - 1)) %>%
+  ggplot(aes(timeSpentLag1,  mu)) + geom_bar(stat = "identity") + facet_grid(condition~ht) +
+  geom_errorbar(aes(timeSpentLag1, ymin = mu - se, ymax = mu + se)) + myTheme + 
+  xlab("Previous spent time (s)") + ylab("Acceptance (%)")
+ggsave("figures/pAccept_previous_time_old.png", width = 9, height = 4)
 
-# the effect 
-fit = glm(action ~ condition + scheduledHt + preTimeSpent + preTrialEarnings, family = "binomial",fitData)   
-summary(fit)
+# detect the effect of previous spent time
+data %>%  filter(trialIdx > 1 & trialEarningsLag1 > 0 & condition == "rich") %>%
+  mutate(trialEarningsLag1 = as.factor(trialEarningsLag1)) %>%
+  group_by(id, trialEarningsLag1,  ht, timeSpentLag1) %>% summarise(pAccept = mean(action, na.rm = T)) %>%
+  group_by(trialEarningsLag1,  ht, timeSpentLag1) %>% summarise(mu = mean(pAccept), se = sd(pAccept) / sqrt(sum(!is.na(pAccept)) - 1)) %>%
+  ggplot(aes(trialEarningsLag1,  mu)) + geom_bar(stat = "identity") + facet_grid(timeSpentLag1~ht) +
+  geom_errorbar(aes(trialEarningsLag1, ymin = mu - se, ymax = mu + se)) + myTheme + 
+  xlab("Previous payoff") + ylab("Acceptance (%)") 
+ggsave("figures/pAccept_previous_payoff_old.png", width = 6, height = 4)
 
+# regression
+fitData = data %>% filter(trialIdx > 1 & trialEarningsLag1 > 0 & scheduledHt > 2 & scheduledHt < 40)
+fit = glmer(action ~ scheduledHt + timeSpentLag1 + trialEarningsLag1 + condition + (1 | id),  family = "binomial",fitData)   
+summary(fit)
 
 ########################## reaction time ###################
 # what kind of figure I should show?? normalization ??
