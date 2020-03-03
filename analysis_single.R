@@ -1,13 +1,13 @@
 source("RL.R")
 source("RLSocial.R")
 library("ggplot2")
-library("dplyr")
 library("tidyr")
 library("logistf")
 library("lme4")
 library("lmerTest")
 source("subFxs/plotThemes.R")
 library("data.table")
+library("dplyr")
 # load expParas
 load("expParas.RData")
 
@@ -17,7 +17,8 @@ dir.create("figures")
 dir.create("figures/analysis")
 
 # read in data
-thisTrialData = read.csv("data/205.csv", header = T)
+id = "202"
+thisTrialData = read.csv(sprintf("data/%s.csv", id), header = T)
 thisTrialData$condition = factor(ifelse(thisTrialData$blockIdx == 1, "rich", "poor"), levels = c("rich", "poor"))
 thisTrialData$ht = as.factor(thisTrialData$scheduledHt)
 thisTrialData$taskTime = thisTrialData$blockTime 
@@ -28,11 +29,11 @@ thisTrialData$action = ifelse(thisTrialData$trialEarnings == -2, NA, ifelse(this
 thisTrialData$trialEarningsLag1 = unlist(thisTrialData %>% group_by(condition) %>% group_map(~c(NA, head(.x$trialEarnings, -1))))
 thisTrialData$timeSpent = ifelse(thisTrialData$action, thisTrialData$scheduledHt + iti, 0 + iti)
 thisTrialData$timeSpentLag1 = unlist(thisTrialData %>% group_by(condition) %>% group_map(~c(NA, head(.x$timeSpent, -1))))
-  
+thisTrialData$Action = ifelse(thisTrialData$action == 1, "Accept", "Reject")
 # plot the effect of the environment and the ht
 # use adjusted pAccept and se 
 thisTrialData %>% filter(!is.na(action)) %>% group_by(condition, ht) %>%
-  dplyr::summarise(mu = sum(action) / length(action),
+  summarise(mu = sum(action) / length(action),
                    se = sqrt(mu * (1 -mu)) / sqrt(length(action)),
                    n = length(action)) %>% 
   ggplot(aes(ht, mu, fill = condition)) +
@@ -57,6 +58,55 @@ thisTrialData %>%  filter(trialIdx > 1 & trialEarningsLag1 > 0 & condition == "p
   facet_grid(timeSpentLag1~ht) +
   geom_errorbar(aes(trialEarningsLag1, ymin = mu - se, ymax = mu + se)) + myTheme +
   xlab("Previous payoff") + ylab("Acceptance (%)") + ylim(c(0, 1.5))
+
+# learning curve 
+moreFreqDf = thisTrialData %>%
+  filter((condition == "rich" & scheduledHt == unqHts[1]) |
+           (condition == "poor" & scheduledHt == unqHts[3]))
+lessFreqDf = thisTrialData %>%
+  filter((condition == "rich" & scheduledHt != unqHts[1]) |
+           (condition == "poor" & scheduledHt != unqHts[3]))
+tempt1 = moreFreqDf %>% filter(!is.na(action)) %>%
+  group_by(condition, ht, chunkIdx) %>% summarise(pAccept = mean(action))
+
+tempt2 = lessFreqDf %>%
+  group_by(condition, ht) %>% mutate(groupIdx = ceiling(rank(trialIdx) / 4)) %>%
+  group_by(condition, ht, groupIdx) %>%
+  summarise(pAccept = mean(action, na.rm = T),
+                   chunkIdx = mean(chunkIdx, na.rm = T))
+learnCurveDf = rbind(tempt1, tempt2)
+junk = thisTrialData %>% group_by(ht) %>% summarise(max(chunkIdx[condition == 'rich']))
+condDf = data.frame(
+  ht = factor(unqHts),
+  seg = junk[[2]] 
+)
+learnCurveDf %>% ggplot(aes(chunkIdx, pAccept)) + geom_line() +
+  geom_point(aes(chunkIdx, pAccept)) + facet_grid(~ ht) + myTheme +
+  geom_vline(aes(xintercept = seg),data = condDf, color = "grey", linetype = "dashed") +
+  xlab("Run") + ylab("Acceptance (%)")
+ggsave(sprintf("figures/learnCurve_%s.png", id), width = 6, height = 4)
+
+# plot the reaction time 
+## create stimIdx 
+thisTrialData$stimIdx = thisTrialData$chunkIdx
+select = (thisTrialData$condition == "rich" & thisTrialData$scheduledHt == unqHts[1]) |
+  (thisTrialData$condition == "poor" & thisTrialData$scheduledHt == unqHts[3])
+thisTrialData$stimIdx[select] = thisTrialData$chunkIdx[select] +
+  unlist(thisTrialData %>% filter(select) %>% group_by(condition, ht, chunkIdx) %>% group_map(~rank(.x$trialIdx) / 4 - 0.25))
+## detect RT outliers
+thisTrialData =  thisTrialData %>%
+  group_by(condition, ht) %>%
+  mutate(isRTOutlier = responseRT > (median(responseRT) + 1.5 * IQR(responseRT)) |
+           responseRT < (median(responseRT) - 1.5 * IQR(responseRT)))
+  
+thisTrialData %>% filter(!isRTOutlier) %>%
+  ggplot(aes(stimIdx, responseRT)) +
+  geom_line(aes(color = Action), alpha = 0.8) +
+  facet_grid(~ ht) + 
+  scale_color_manual(values = c("#4575b4", "#d73027")) +
+  xlab("Run") + ylab("RT (s)") + myTheme +
+  geom_vline(aes(xintercept = seg),data = condDf, color = "grey", linetype = "dashed") 
+ggsave(sprintf("figures/RT_%s.png", id), width = 6, height = 4)
 
 
 # fit a model 
@@ -101,7 +151,7 @@ ggsave("figures/analysis/learningCurve.png", width = 6, height = 3)
 # error bars and outliers 
 thisTrialData  %>%
   group_by(ht, condition) %>%
-  dplyr::summarise(mu = mean(responseRT)) %>% 
+  summarise(mu = mean(responseRT)) %>% 
   ggplot(aes(ht, mu, fill = condition)) + 
   geom_bar(stat = "identity", position = 'dodge') +
   xlab("Ht (s)") + ylab("RT (s)") + myTheme 
